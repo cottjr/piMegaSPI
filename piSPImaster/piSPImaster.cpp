@@ -41,11 +41,19 @@ unsigned char hello[] = {'H','e','l','l','o',' ',
                            'A','r','d','u','i','n','o'};
 unsigned char result;
 
+
+/**********************************************************
+Housekeeping variables
+***********************************************************/
+int results;
+
+
 /**********************************************************
 Declare Functions
 ***********************************************************/
 
 int spiTxRx(unsigned char txDat);
+int sendCommand(char i, int j, int k);
 
 
 /**********************************************************
@@ -68,6 +76,13 @@ int main (void)
   pinMode(6, OUTPUT); // set GPIO.6, ie. BCM 25 ie. physical pin 22 as output
   digitalWrite(6, HIGH); // set GPIO.6, high, to enable outputs on the SPI level translater from Raspberry to Arduino Mega
 
+
+/**********************************************************
+Setup SPI
+Open file spidev0.0 (chip enable 0) for read/write access
+with the file descriptor "fd"
+Configure transfer speed (1MkHz)
+***********************************************************/
    fd = open("/dev/spidev0.0", O_RDWR);
 
    unsigned int speed = 1000000;
@@ -76,15 +91,36 @@ int main (void)
   printf ("made it past the register initialization...\n");
   cout << "does cout actually work?";
 
+/**********************************************************
+An endless loop that repeatedly sends the demonstration
+commands to the Arduino and displays the results
+***********************************************************/
    while (1)
    {
 
-      for (int i = 0; i < sizeof(hello); i++)
-      {
-         result = spiTxRx(hello[i]);
-         cout << result;
-         usleep (10);
-      }
+// version 1 simply sent a 'hello' string to the ardunio
+//      for (int i = 0; i < sizeof(hello); i++)
+//      {
+//         result = spiTxRx(hello[i]);
+//         cout << result;
+//         usleep (10);
+//      }
+
+// version 2 sends a single byte command and two two-byte parameters
+      results = sendCommand('a', 510, 655);
+
+      cout << "Addition results:" << endl;
+      cout << "510 + 655 = " <<  (int)(results) << endl;
+
+
+      results = sendCommand('s', 1000, 250);
+
+      cout << "Subtraction results:" << endl;
+      cout << "1000 - 250 = " <<  (int)(results) << endl <<endl; 
+
+      sleep(1);
+
+
 
    }
 
@@ -119,4 +155,115 @@ int spiTxRx(unsigned char txDat)
   ioctl (fd, SPI_IOC_MESSAGE(1), &spi);
 
   return rxDat;
+}
+
+
+/**********************************************************
+sendCommand
+ Demonstration of a protocol that uses the spiTxRx function
+ to send a formatted command sequence/packet to the Arduino
+ one byte at and capture the results
+***********************************************************/
+
+
+int sendCommand(char command, int j, int k)
+{
+
+unsigned char resultByte;
+bool ack;
+
+/**********************************************************
+Unions allow variables to occupy the same memory space
+a convenient way to move back and forth between 8-bit and
+16-bit values etc.
+
+Here three unions are declared: two for parameters to be 
+passed in commands to the Arduino and one to receive
+the results
+***********************************************************/
+
+union p1Buffer_T       
+{
+  int p1Int;
+  unsigned char  p1Char [2];
+} p1Buffer;
+
+union p2Buffer_T      
+{
+  int p2Int;
+  unsigned char  p2Char [2];
+} p2Buffer;
+
+union resultBuffer_T     
+{
+  int resultInt;
+  unsigned char  resultChar [2];
+} resultBuffer;
+
+
+  p1Buffer.p1Int = j;
+  p2Buffer.p2Int = k;
+  resultBuffer.resultInt = 0;
+
+/**********************************************************
+An initial handshake sequence sends a one byte start code
+('c') and loops endlessly until it receives the one byte 
+acknowledgment code ('a') and sets the ack flag to true.
+(Note that the loop also sends the command byte while 
+still in handshake sequence to avoid wasting a transmit
+cycle.)
+***********************************************************/
+
+  do
+  {
+    ack = false;
+
+    spiTxRx('c');
+    usleep (10);
+
+
+    resultByte = spiTxRx(command);
+    if (resultByte == 'a')
+    {
+      ack = true;
+    }
+    usleep (10);  
+
+   }
+  while (ack == false);
+
+/**********************************************************
+Send the parameters one byte at a time.
+***********************************************************/
+
+  spiTxRx(p1Buffer.p1Char[0]);
+  usleep (10);
+
+
+  spiTxRx(p1Buffer.p1Char[1]);
+  usleep (10);
+
+
+  spiTxRx(p2Buffer.p2Char[0]);
+  usleep (10);
+
+
+  spiTxRx(p2Buffer.p2Char[1]);
+  usleep (10);
+
+/**********************************************************
+Push two more zeros through so the Arduino can return the
+results
+***********************************************************/
+
+
+  resultByte = spiTxRx(0);
+  resultBuffer.resultChar[0] = resultByte;
+  usleep (10);
+
+
+  resultByte = spiTxRx(0);
+  resultBuffer.resultChar[1] = resultByte;
+  return resultBuffer.resultInt;
+
 }
