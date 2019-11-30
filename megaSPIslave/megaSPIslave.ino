@@ -12,7 +12,7 @@
 ****************************************************************/
 
 #include <avr/io.h>     // per Dale Wheat / Arduino Internals page 35.  Explicitly included to reference Arduion registers, even though Arduino automatically picks it up when not included
-
+#include <SPI.h>
 
 /***************************************************************
  Global Variables
@@ -77,6 +77,9 @@ void setup (void)
   pinMode(MISO, OUTPUT);
   SPCR |= _BV(SPE);
 
+  // turn on SPI interrupts
+  SPI.attachInterrupt();
+
   Serial.println("completed setup");
 
 }  
@@ -94,24 +97,36 @@ void setup (void)
  Loop until the SPI End of Transmission Flag (SPIF) is set
  indicating a byte has been received.  When a byte is
  received, call the spiHandler function.
+
+ Version 3
+ trigger interrupts per this template
+   https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
 ****************************************************************/
+
+// SPI interrupt routine
+ISR (SPI_STC_vect)
+{
+  byte c = SPDR;
+  SPDR = c+12;
+}  // end of interrupt service routine (ISR) for SPI
+
 
 void loop (void)
 {
 
-  if((SPSR & (1 << SPIF)) != 0)
-  {
-    // // Serial.println(marker);
-    // SPDR = hello[marker];
-    // marker++;
+  // if((SPSR & (1 << SPIF)) != 0)
+  // {
+  //   // // Serial.println(marker);
+  //   // SPDR = hello[marker];
+  //   // marker++;
    
-    // if(marker > sizeof(hello))
-    // {
-    //   Serial.println("done");
-    //   marker = 0;
-    // }  
-    spiHandler();
-  }
+  //   // if(marker > sizeof(hello))
+  //   // {
+  //   //   Serial.println("done");
+  //   //   marker = 0;
+  //   // }  
+  //   spiHandler();
+  // }
 }
 
 /***************************************************************  
