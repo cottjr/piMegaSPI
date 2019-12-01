@@ -11,6 +11,7 @@
    the Ardunio transmits the result
 ****************************************************************/
 
+#include <arduino.h>
 #include <avr/io.h>     // per Dale Wheat / Arduino Internals page 35.  Explicitly included to reference Arduion registers, even though Arduino automatically picks it up when not included
 
 
@@ -59,6 +60,8 @@ union
   } resultBuffer;
 
 
+#define digTP26 26  // digital test point #1 (pin 26) // CPU status monitoring via o'scope
+#define digTP27 27  // digital test point #2 (pin 27) // CPU status monitoring via o'scope
 
 
 /***************************************************************  
@@ -73,6 +76,12 @@ void setup (void)
                           // e.g. https://www.quora.com/What-is-the-baud-rate-and-why-does-Arduino-have-a-baud-rate-of-9-600
 
   Serial.println("entering setup");
+
+    // Digital Test Points
+  pinMode (digTP26, OUTPUT);
+  pinMode (digTP27, OUTPUT);
+  digitalWrite(digTP26, LOW);
+  digitalWrite(digTP26, LOW);
 
   pinMode(MISO, OUTPUT);
   SPCR |= _BV(SPE);
@@ -110,7 +119,9 @@ void loop (void)
     //   Serial.println("done");
     //   marker = 0;
     // }  
+    digitalWrite(digTP26, HIGH);
     spiHandler();
+    digitalWrite(digTP26, LOW);    
   }
 }
 
