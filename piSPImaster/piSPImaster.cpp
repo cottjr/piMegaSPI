@@ -118,7 +118,7 @@ commands to the Arduino and displays the results
       cout << "Subtraction results:" << endl;
       cout << "1000 - 250 = " <<  (int)(results) << endl <<endl; 
 
-      sleep(1);
+      sleep(0.2);
 
 
 
@@ -219,7 +219,7 @@ cycle.)
     ack = false;
 
     spiTxRx('c');
-    usleep (10);
+    // usleep (10);
 
 
     resultByte = spiTxRx(command);
@@ -227,7 +227,7 @@ cycle.)
     {
       ack = true;
     }
-    usleep (10);  
+    // usleep (10);  
 
    }
   while (ack == false);
@@ -237,19 +237,19 @@ Send the parameters one byte at a time.
 ***********************************************************/
 
   spiTxRx(p1Buffer.p1Char[0]);
-  usleep (10);
+  // usleep (10);
 
 
   spiTxRx(p1Buffer.p1Char[1]);
-  usleep (10);
+  // usleep (10);
 
 
   spiTxRx(p2Buffer.p2Char[0]);
-  usleep (10);
+  // usleep (10);
 
 
   spiTxRx(p2Buffer.p2Char[1]);
-  usleep (10);
+  // usleep (10);
 
 /**********************************************************
 Push two more zeros through so the Arduino can return the
@@ -259,7 +259,7 @@ results
 
   resultByte = spiTxRx(0);
   resultBuffer.resultChar[0] = resultByte;
-  usleep (10);
+  // usleep (10);
 
 
   resultByte = spiTxRx(0);
