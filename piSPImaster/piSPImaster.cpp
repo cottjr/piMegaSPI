@@ -1,15 +1,19 @@
 /**********************************************************
  piSPImaster
-   Configures an Raspberry Pi as an SPI master and  
-   demonstrates bidirectional communication with an 
-   Arduino Slave by repeatedly sending the text
-   "Hello Arduino" and receiving a response
+  Configures an Raspberry Pi as an SPI master and  
+   demonstrates bidirectional communication with an Arduino Slave.
+  
+  
+  Raspberry Pi repeatedly sends alternating math problems for the Arduino.
+  The Arduino is expected to accept a math operand (add or subtract) and two parameters,
+  and then calculate the result, and provide the result to the Raspberry Pi 'in the same burst'
+  which provided the operand and parameters.
+
+  This sample code is used to explore SPI interactions and verify a simple protocol, capable
+  of transmitting multiple bytes and data types.
    
 Compile String:
-// doesn't work with wiring library references
-g++ -o piSPImaster piSPImaster.cpp
-
-// need to pick up the wiringPi library per this http://wiringpi.com/reference/
+// be sure to pick up the wiringPi library per this http://wiringpi.com/reference/
 g++ -o piSPImaster piSPImaster.cpp -I/usr/local/include -L/usr/local/lib -lwiringPi
 
 ***********************************************************/
@@ -17,9 +21,9 @@ g++ -o piSPImaster piSPImaster.cpp -I/usr/local/include -L/usr/local/lib -lwirin
 // Prior initial / polled sample follows http://robotics.hobbizine.com/raspiduino.html
 // This interrupt sample builds on that following https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
 
-// for Carl's implementation, with a TXS0108E level shifter
-// need the Raspberry Pi to explicitly enable level shifter output pins
-// for this, need to set GPIO 25 to an output, and set it high
+// This implementation assumes a 3.3v Pi connected to a 5v Arduino Mega 2560 via a TXS0108E level shifter,
+// and requires the Raspberry Pi to explicitly enable level shifter output pins
+// For this, need to set GPIO 25 to an output, and set it high
 // https://www.digikey.com/en/maker/blogs/2019/how-to-use-gpio-on-the-raspberry-pi-with-c
 
 #include <sys/ioctl.h>
@@ -99,15 +103,8 @@ commands to the Arduino and displays the results
    while (1)
    {
 
-// // version 1 simply sent a 'hello' string to the ardunio
-// //      for (int i = 0; i < sizeof(hello); i++)
-// //      {
-// //         result = spiTxRx(hello[i]);
-// //         cout << result;
-// //         usleep (10);
-// //      }
-
-// version 2 sends a single byte command and two two-byte parameters
+// this version sends a single byte operand command and two separate two-byte parameters
+// Each execution of sendCommand() transfers 8 bytes in each direction
       results = sendCommand('a', 510, 655);
 
       cout << "Addition results:" << endl;
