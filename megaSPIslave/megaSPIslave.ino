@@ -29,6 +29,7 @@ unsigned char hello[] = {'H','e','l','l','o',' ',
 volatile unsigned char receiveBuffer[5];
 volatile unsigned char dat;                         
 volatile byte marker = 0;
+volatile unsigned long SPIwdPriorMillis;
  
 #define digTP26 26  // digital test point #1 (pin 26) // CPU status monitoring via o'scope
 #define digTP27 27  // digital test point #2 (pin 27) // CPU status monitoring via o'scope
@@ -82,6 +83,8 @@ void setup (void)
   digitalWrite(digTP26, LOW);
   digitalWrite(digTP27, LOW);
 
+  SPIwdPriorMillis = millis();  // initialize the SPI watchdog time counter
+
   pinMode(MISO, OUTPUT);
   SPCR |= _BV(SPE);
 
@@ -134,9 +137,19 @@ Derived from polled example code spiHandler()
 ISR (SPI_STC_vect)
 {
     digitalWrite(digTP26, HIGH);
+
+    // reset the SPI listener state machine if the prior transfer has clearly taken too long or was prematurely cancelled
+    // ie. this will force the listener to wait for another initial 'start new transfer' marker byte
+    // choose threshold based on empirical timing observation by oscilloscope plus a little margin
+    if ( (millis() - SPIwdPriorMillis) > 5)
+    {
+      marker=0;
+    }
+
     switch (marker)
     {
     case 0:
+      SPIwdPriorMillis = millis();
       dat = SPDR;
       if (dat == 'c')
       {
