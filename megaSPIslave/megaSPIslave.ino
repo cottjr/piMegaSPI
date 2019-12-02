@@ -1,14 +1,16 @@
 /*************************************************************
- SPI_Hello_Raspi
-   Configures an ATMEGA as an SPI slave and demonstrates
-   bidirectional communication with an Raspberry Pi SPI master
-   by repeatedly sending the text "Hello Raspi"
+ megaSPIslave
+  Configures an Arduino as an SPI slave, and demonstrates bidirectional
+  communication with a Raspberry Pi conmfigured as an SPI master.
+  In this implementation, the Arduino uses interrupts to trigger actions when a new byte arrives via SPI.
+    
+  Raspberry Pi repeatedly sends alternating math problems for the Arduino.
+  The Arduino is expected to accept a math operand (add or subtract) and two parameters,
+  and then calculate the result, and provide the result to the Raspberry Pi 'in the same burst'
+  which provided the operand and parameters.
 
-   Configures an ATMEGA as an SPI slave and demonstrates
-   a basic bidirectional communication scheme
-   A Raspberry Pi SPI master transmits commands to 
-   perform addition and subtraction on a pair of integers and
-   the Ardunio transmits the result
+  This sample code is used to explore SPI interactions and verify a simple protocol, capable
+  of transmitting multiple bytes and data types.
 ****************************************************************/
 
 #include <arduino.h>
@@ -17,7 +19,6 @@
 
 /***************************************************************
  Global Variables
-  -hello[] is an array to hold the data to be transmitted
   -receiveBuffer[] and dat are used to capture incoming data
    from the Raspberry Pi
   -marker is used as a pointer to keep track of the current
@@ -25,8 +26,6 @@
   -marker is used as a pointer in traversing data arrays
 /***************************************************************/
 
-unsigned char hello[] = {'H','e','l','l','o',' ',
-                         'R','a','s','p','i','\n'};
 volatile unsigned char receiveBuffer[5];
 volatile unsigned char dat;                         
 volatile byte marker = 0;
@@ -98,31 +97,16 @@ void setup (void)
 
 }  
 
-/***************************************************************  
- Version 1
- Loop until the SPI End of Transmission Flag (SPIF) is set
- indicating a byte has been received.  When a byte is
- received, load the next byte in the Hello[] array into SPDR
- to be transmitted to the Raspberry Pi, and increment the marker.
- If the end of the Hell0[] array has been reached, reset
- marker to 0.
-
- Version 2
- Loop until the SPI End of Transmission Flag (SPIF) is set
- indicating a byte has been received.  When a byte is
- received, call the spiHandler function.
-
- Version 3
- trigger interrupts per this template
-   https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
-****************************************************************/
-
 // Purpose
 //  Assess arrival of another byte via SPI
 // Algorithm
 //  Ignore it, Reset the transfer protocol state machine, or add the latest transferred byte to an 'being catured' buffer
+//  trigger on SPI received interrupts per this template
+//   https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
+
 /***************************************************************  
-Derived from polled example code spiHandler()
+Algorithm & protocol derived from polled example code spiHandler()
+  ie. crom http://robotics.hobbizine.com/raspiduino.html
    Uses the marker variable to keep track current position in the
    incoming data packet and execute accordingly
    0   - wait for to receive start byte - once received send
@@ -139,6 +123,7 @@ Derived from polled example code spiHandler()
 ****************************************************************/
 ISR (SPI_STC_vect)
 {
+    // write to digTP26, to facilitate timing measurements via oscilloscope
     digitalWrite(digTP26, HIGH);
 
     // reset the SPI listener state machine if the prior transfer has clearly taken too long or was prematurely cancelled
@@ -180,6 +165,10 @@ ISR (SPI_STC_vect)
       receiveBuffer[marker-1] = SPDR;
       marker++;
       executeCommand();
+      // Note: this sample code consciously violates good design patterns
+      // It is bad practice to call external functions within an ISR.
+      // Note that executeCommand() was left from original code to minimize refactoring
+      // A better ISR would handle executeCommand() tasks more efficiently
       SPDR = resultBuffer.resultChar[0];    
       break;    
     case 6:
@@ -195,85 +184,10 @@ ISR (SPI_STC_vect)
 
 void loop (void)
 {
-
-  // if((SPSR & (1 << SPIF)) != 0)
-  // {
-  //   // // Serial.println(marker);
-  //   // SPDR = hello[marker];
-  //   // marker++;
-   
-    // if(marker > sizeof(hello))
-    // {
-    //   Serial.println("done");
-    //   marker = 0;
-    // }  
-    // digitalWrite(digTP26, HIGH);
-    // spiHandler();
-    // digitalWrite(digTP26, LOW);    
+  // nothing here - everything is handled by ISR (SPI_STC_vect)
+    
 }
 
-// /***************************************************************  
-//  spiHandler
-//    Uses the marker variable to keep track current position in the
-//    incoming data packet and execute accordingly
-//    0   - wait for to receive start byte - once received send
-//          the acknowledge byte
-//    1   - the command to add or subtract
-//    2-5 - two integer parameters to be added or subtracted
-//        - when the last byte (5) is received, call the
-//          executeCommand function and load the first byte of the
-//          result into SPDR
-//    6   - transmit the first byte of the result and load the 
-//          second byte into SPDR
-//    7   - transmit the second byte of of the result and reset
-//          the marker   
-// ****************************************************************/
-
-
-// void spiHandler()
-// {
-//   switch (marker)
-//   {
-//   case 0:
-//     dat = SPDR;
-//     if (dat == 'c')
-//     {
-//       SPDR = 'a';
-//       marker++;
-//     } 
-//     break;    
-//   case 1:
-//     receiveBuffer[marker-1] = SPDR;
-//     marker++;
-//     break;
-//   case 2:
-//     receiveBuffer[marker-1] = SPDR;
-//     marker++;
-//     break;
-//   case 3:
-//     receiveBuffer[marker-1] = SPDR;
-//     marker++;
-//     break;
-//   case 4:
-//     receiveBuffer[marker-1] = SPDR;
-//     marker++;
-//     break;
-//   case 5:
-//     receiveBuffer[marker-1] = SPDR;
-//     marker++;
-//     executeCommand();
-//     SPDR = resultBuffer.resultChar[0];    
-//     break;    
-//   case 6:
-//     marker++;
-//     SPDR = resultBuffer.resultChar[1]; 
-//     break;   
-//   case 7:
-//     dat = SPDR;
-//     marker=0;
-//   }
-
-// }
 
 /***************************************************************  
  executeCommand
@@ -282,8 +196,6 @@ void loop (void)
    into integers, parse the command (add or subtract) and perform
    the indicated operation - the result will be in resultBuffer
 ****************************************************************/
-
-  
 void executeCommand(void)
 {
 
@@ -292,21 +204,15 @@ void executeCommand(void)
  p2Buffer.p2Char[0]=receiveBuffer[3];
  p2Buffer.p2Char[1]=receiveBuffer[4];
  
+ // Note: avoid the temptation to place Serial.println() in this function
+ // => because executeCommand() is called w/in an ISR,
+ //    including Serial.println() here would break behavior...
  if(receiveBuffer[0] == 'a')
  {
-//    Serial.print("Command 'a': ");
-//    Serial.print(p1Buffer.p1Int);
-//    Serial.print(" + ");
-//    Serial.println(p1Buffer.p1Int);
    resultBuffer.resultInt = p1Buffer.p1Int + p2Buffer.p2Int;
   }
  else if (receiveBuffer[0] == 's')
  {
-//    Serial.print("Command 's': ");
-//    Serial.print(p1Buffer.p1Int);
-//    Serial.print(" - ");
-//    Serial.println(p1Buffer.p1Int);
   resultBuffer.resultInt = p1Buffer.p1Int - p2Buffer.p2Int;
  }
-//    Serial.println(resultBuffer.resultInt);
 } 
