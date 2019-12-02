@@ -14,8 +14,7 @@ g++ -o piSPImaster piSPImaster.cpp -I/usr/local/include -L/usr/local/lib -lwirin
 
 ***********************************************************/
 
-// Prior initial / polled sample follows http://robotics.hobbizine.com/raspiduino.html
-// This interrupt sample builds on that following https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
+// sample follows http://robotics.hobbizine.com/raspiduino.html
 
 // for Carl's implementation, with a TXS0108E level shifter
 // need the Raspberry Pi to explicitly enable level shifter output pins
@@ -28,7 +27,6 @@ g++ -o piSPImaster piSPImaster.cpp -I/usr/local/include -L/usr/local/lib -lwirin
 #include <cstring>
 #include <iostream>
 #include <wiringPi.h>
-#include <wiringPiSPI.h>
 #include <unistd.h>
 
 using namespace std;
@@ -69,9 +67,6 @@ Main
     the returned bytes
 ***********************************************************/
 
-#define SPI_CHANNEL 0
-#define SPI_CLOCK_SPEED 1000000
-
 int main (void)
 {
 
@@ -82,26 +77,26 @@ int main (void)
   digitalWrite(6, HIGH); // set GPIO.6, high, to enable outputs on the SPI level translater from Raspberry to Arduino Mega
 
 
-// /**********************************************************
-// Setup SPI
-// Open file spidev0.0 (chip enable 0) for read/write access
-// with the file descriptor "fd"
-// Configure transfer speed (1MkHz)
-// ***********************************************************/
-//    fd = open("/dev/spidev0.0", O_RDWR);
+/**********************************************************
+Setup SPI
+Open file spidev0.0 (chip enable 0) for read/write access
+with the file descriptor "fd"
+Configure transfer speed (1MkHz)
+***********************************************************/
+   fd = open("/dev/spidev0.0", O_RDWR);
 
-//    unsigned int speed = 1000000;
-//    ioctl (fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+   unsigned int speed = 1000000;
+   ioctl (fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
 
-//   printf ("made it past the register initialization...\n");
-//   cout << "does cout actually work?";
+  printf ("made it past the register initialization...\n");
+  cout << "does cout actually work?";
 
-// /**********************************************************
-// An endless loop that repeatedly sends the demonstration
-// commands to the Arduino and displays the results
-// ***********************************************************/
-//    while (1)
-//    {
+/**********************************************************
+An endless loop that repeatedly sends the demonstration
+commands to the Arduino and displays the results
+***********************************************************/
+   while (1)
+   {
 
 // // version 1 simply sent a 'hello' string to the ardunio
 // //      for (int i = 0; i < sizeof(hello); i++)
@@ -111,35 +106,23 @@ int main (void)
 // //         usleep (10);
 // //      }
 
-// // version 2 sends a single byte command and two two-byte parameters
-//       results = sendCommand('a', 510, 655);
+// version 2 sends a single byte command and two two-byte parameters
+      results = sendCommand('a', 510, 655);
 
-//       cout << "Addition results:" << endl;
-//       cout << "510 + 655 = " <<  (int)(results) << endl;
-
-
-//       results = sendCommand('s', 1000, 250);
-
-//       cout << "Subtraction results:" << endl;
-//       cout << "1000 - 250 = " <<  (int)(results) << endl <<endl; 
-
-//       sleep(1);
+      cout << "Addition results:" << endl;
+      cout << "510 + 655 = " <<  (int)(results) << endl;
 
 
+      results = sendCommand('s', 1000, 250);
 
-//    }
+      cout << "Subtraction results:" << endl;
+      cout << "1000 - 250 = " <<  (int)(results) << endl <<endl; 
 
-  int fd = wiringPiSPISetupMode(SPI_CHANNEL, SPI_CLOCK_SPEED, 0);
-  if (fd == -1) {
-      std::cout << "Failed to init SPI communication.\n";
-      return -1;
-  }
-  std::cout << "SPI communication successfully setup.\n";
-  
-  unsigned char buf[2] = { 23, 0 };
-  wiringPiSPIDataRW(SPI_CHANNEL, buf, 2);
-  std::cout << "Data returned: " << +buf[1] << "\n"; 
-  return 0;
+      sleep(1);
+
+
+
+   }
 
 }
 
