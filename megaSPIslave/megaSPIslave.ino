@@ -11,6 +11,7 @@
    the Ardunio transmits the result
 ****************************************************************/
 
+#include <arduino.h>
 #include <avr/io.h>     // per Dale Wheat / Arduino Internals page 35.  Explicitly included to reference Arduion registers, even though Arduino automatically picks it up when not included
 #include <SPI.h>
 
@@ -62,6 +63,8 @@ volatile union
   } resultBuffer;
 
 
+#define digTP26 26  // digital test point #1 (pin 26) // CPU status monitoring via o'scope
+#define digTP27 27  // digital test point #2 (pin 27) // CPU status monitoring via o'scope
 
 
 /***************************************************************  
