@@ -61,6 +61,8 @@ int sendCommand(char i, int j, int k);
 int main (void)
 {
 
+unsigned char dummyByte;
+
   printf("OK, lets get this party started\n");
 
   wiringPiSetup();  // set up the Pi library to enable directly controlling GPIO pins
@@ -96,11 +98,19 @@ int main (void)
       cout << "Addition results:" << endl;
       cout << "510 + 655 = " <<  (int)(results) << endl;
 
+  //robustness test
+  dummyByte = spiTxRx(5);  // send a spurious byte to verify that the Arduino rejects it.
+  usleep (10);  
 
       results = sendCommand('s', 1000, 250);
 
       cout << "Subtraction results:" << endl;
       cout << "1000 - 250 = " <<  (int)(results) << endl <<endl; 
+
+  //robustness test
+  usleep (200); 
+  dummyByte = spiTxRx(5);  // send a spurious byte to verify that the Arduino rejects it.
+  usleep (10); 
 
       sleep(1);
    }
@@ -222,7 +232,6 @@ union resultBuffer_T
 
   spiTxRx(p2Buffer.p2Char[0]);
   usleep (10);
-
 
   spiTxRx(p2Buffer.p2Char[1]);
   usleep (10);
