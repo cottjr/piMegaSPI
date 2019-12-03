@@ -1,14 +1,16 @@
 /*************************************************************
- SPI_Hello_Raspi
-   Configures an ATMEGA as an SPI slave and demonstrates
-   bidirectional communication with an Raspberry Pi SPI master
-   by repeatedly sending the text "Hello Raspi"
+ megaSPIslave
+  Configures an Arduino as an SPI slave, and demonstrates bidirectional
+  communication with a Raspberry Pi conmfigured as an SPI master.
+  In this implementation, the Arduino uses a polling mechanism to trigger actions when a new byte arrives via SPI.
+    
+  Raspberry Pi repeatedly sends alternating math problems for the Arduino.
+  The Arduino is expected to accept a math operand (add or subtract) and two parameters,
+  and then calculate the result, and provide the result to the Raspberry Pi 'in the same burst'
+  which provided the operand and parameters.
 
-   Configures an ATMEGA as an SPI slave and demonstrates
-   a basic bidirectional communication scheme
-   A Raspberry Pi SPI master transmits commands to 
-   perform addition and subtraction on a pair of integers and
-   the Ardunio transmits the result
+  This sample code is used to explore SPI interactions and verify a simple protocol, capable
+  of transmitting multiple bytes and data types.
 ****************************************************************/
 
 #include <arduino.h>
@@ -17,7 +19,6 @@
 
 /***************************************************************
  Global Variables
-  -hello[] is an array to hold the data to be transmitted
   -receiveBuffer[] and dat are used to capture incoming data
    from the Raspberry Pi
   -marker is used as a pointer to keep track of the current
@@ -25,8 +26,6 @@
   -marker is used as a pointer in traversing data arrays
 /***************************************************************/
 
-unsigned char hello[] = {'H','e','l','l','o',' ',
-                         'R','a','s','p','i','\n'};
 unsigned char receiveBuffer[5];
 unsigned char dat;                         
 byte marker = 0;
@@ -70,7 +69,6 @@ union
  Setup SPI in slave mode (1) define MISO pin as output (2) set
  enable bit of the SPI configuration register 
 ****************************************************************/ 
-                    
 void setup (void)
 {
   Serial.begin(250000);   // Serial:  0(RX), 1(TX) => use the highest possible rate to minimize drag on the CPU
@@ -93,40 +91,24 @@ void setup (void)
 }  
 
 /***************************************************************  
- Version 1
- Loop until the SPI End of Transmission Flag (SPIF) is set
- indicating a byte has been received.  When a byte is
- received, load the next byte in the Hello[] array into SPDR
- to be transmitted to the Raspberry Pi, and increment the marker.
- If the end of the Hell0[] array has been reached, reset
- marker to 0.
-
- Version 2
- Loop until the SPI End of Transmission Flag (SPIF) is set
- indicating a byte has been received.  When a byte is
- received, call the spiHandler function.
+ This version Loops until the SPI End of Transmission Flag (SPIF) is set,
+ which indicates that a byte has been received, and triggers a call to spiHandler().
 ****************************************************************/
-
 void loop (void)
 {
 
   if((SPSR & (1 << SPIF)) != 0)
   {
-    // // Serial.println(marker);
-    // SPDR = hello[marker];
-    // marker++;
-   
-    // if(marker > sizeof(hello))
-    // {
-    //   Serial.println("done");
-    //   marker = 0;
-    // }  
     digitalWrite(digTP26, HIGH);
     spiHandler();
     digitalWrite(digTP26, LOW);    
   }
 }
 
+// Purpose
+//  Assess arrival of another byte via SPI
+// Algorithm
+//  Ignore it, Reset the transfer protocol state machine, or add the latest transferred byte to an 'being catured' buffer
 /***************************************************************  
  spiHandler
    Uses the marker variable to keep track current position in the
@@ -143,8 +125,6 @@ void loop (void)
    7   - transmit the second byte of of the result and reset
          the marker   
 ****************************************************************/
-
-
 void spiHandler()
 {
   switch (marker)
@@ -197,8 +177,6 @@ void spiHandler()
    into integers, parse the command (add or subtract) and perform
    the indicated operation - the result will be in resultBuffer
 ****************************************************************/
-
-  
 void executeCommand(void)
 {
 
@@ -207,21 +185,15 @@ void executeCommand(void)
  p2Buffer.p2Char[0]=receiveBuffer[3];
  p2Buffer.p2Char[1]=receiveBuffer[4];
  
+ // Note: avoid the temptation to place Serial.println() in this function
+ // => because executeCommand() is called w/in an ISR,
+ //    including Serial.println() here would break behavior...
  if(receiveBuffer[0] == 'a')
  {
-//    Serial.print("Command 'a': ");
-//    Serial.print(p1Buffer.p1Int);
-//    Serial.print(" + ");
-//    Serial.println(p1Buffer.p1Int);
    resultBuffer.resultInt = p1Buffer.p1Int + p2Buffer.p2Int;
   }
  else if (receiveBuffer[0] == 's')
  {
-//    Serial.print("Command 's': ");
-//    Serial.print(p1Buffer.p1Int);
-//    Serial.print(" - ");
-//    Serial.println(p1Buffer.p1Int);
   resultBuffer.resultInt = p1Buffer.p1Int - p2Buffer.p2Int;
  }
-//    Serial.println(resultBuffer.resultInt);
 } 
