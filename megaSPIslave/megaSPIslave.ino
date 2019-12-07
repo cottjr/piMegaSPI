@@ -26,8 +26,7 @@
   -marker is used as a pointer in traversing data arrays
 /***************************************************************/
 
-volatile unsigned char receiveBuffer[5];
-// volatile unsigned char dat;                         
+volatile unsigned char receiveBuffer[5];                        
 volatile byte marker = 0;
 volatile unsigned long SPIwdPriorMillis;
  
@@ -138,7 +137,6 @@ ISR (SPI_STC_vect)
     {
     case 0:
       SPIwdPriorMillis = millis();
-      // dat = SPDR;
       if (SPDR == 'c')
       {
         SPDR = 'a';
@@ -176,7 +174,6 @@ ISR (SPI_STC_vect)
       SPDR = resultBuffer.resultChar[1]; 
       break;   
     case 7:
-      // dat = SPDR;
       marker=0;
     }
     digitalWrite(digTP26, LOW);    
