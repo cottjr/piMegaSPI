@@ -27,7 +27,7 @@
 /***************************************************************/
 
 volatile unsigned char receiveBuffer[5];
-volatile unsigned char dat;                         
+// volatile unsigned char dat;                         
 volatile byte marker = 0;
 volatile unsigned long SPIwdPriorMillis;
  
@@ -138,8 +138,8 @@ ISR (SPI_STC_vect)
     {
     case 0:
       SPIwdPriorMillis = millis();
-      dat = SPDR;
-      if (dat == 'c')
+      // dat = SPDR;
+      if (SPDR == 'c')
       {
         SPDR = 'a';
         marker++;
@@ -176,7 +176,7 @@ ISR (SPI_STC_vect)
       SPDR = resultBuffer.resultChar[1]; 
       break;   
     case 7:
-      dat = SPDR;
+      // dat = SPDR;
       marker=0;
     }
     digitalWrite(digTP26, LOW);    
