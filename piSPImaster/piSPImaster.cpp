@@ -1,16 +1,20 @@
 /**********************************************************
  piSPImaster
-  Configures an Raspberry Pi as an SPI master and  
-   demonstrates bidirectional communication with an Arduino Slave.
-  
-  
-  Raspberry Pi repeatedly sends alternating math problems for the Arduino.
-  The Arduino is expected to accept a math operand (add or subtract) and two parameters,
-  and then calculate the result, and provide the result to the Raspberry Pi 'in the same burst'
-  which provided the operand and parameters.
+  Configures an Raspberry Pi as an SPI master
+   to provide bidirectional communication with an Arduino Slave.
 
-  This sample code is used to explore SPI interactions and verify a simple protocol, capable
-  of transmitting multiple bytes and data types.
+  This sample code establishes an simple SPI protocol,
+    intended for intial use within a 'DPRG level' robot.
+
+  This sample provides a single-file framework
+    - to use as reference code, to be embedded or leveraged in a larger Raspberry Pi program
+      => initially, for use in a differential drive robot that mashes together & extends 2 open source designs
+          DonkeyCar             https://www.donkeycar.com/ 
+          DPRG 2016 Club Robot  
+            https://github.com/dprg/2016-Club-Robot-Code
+            https://github.com/dprg/2016-Club-Robot-Mech
+            https://github.com/dprg/2016-Club-Robot-Encoder-Tests
+    - to use as verification test for the corresponding Arduino Slave code
    
 Compile String:
 // be sure to pick up the wiringPi library per this http://wiringpi.com/reference/
@@ -18,8 +22,10 @@ g++ -o piSPImaster piSPImaster.cpp -I/usr/local/include -L/usr/local/lib -lwirin
 
 ***********************************************************/
 
-// Prior initial / polled sample follows http://robotics.hobbizine.com/raspiduino.html
-// This interrupt sample builds on that following https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
+// This protocol builds on lessons extended from
+//  http://robotics.hobbizine.com/raspiduino.html
+//  and 
+//  https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
 
 // This implementation assumes a 3.3v Pi connected to a 5v Arduino Mega 2560 via a TXS0108E level shifter,
 // and requires the Raspberry Pi to explicitly enable level shifter output pins
@@ -40,71 +46,71 @@ using namespace std;
 /**********************************************************
 Declare Global Variables
 ***********************************************************/
-int fd;
-unsigned char result;
+int fdSPI;              // pointer to SPI port
+// unsigned char result;
+
+// placeholder values for this sample / test code
+// for a real instance, these values would be bound to dependent code.
+unsigned char receivedByte1, receivedByte2, receivedByte3;
+long receivedLong1, receivedLong2, receivedLong3;
 
 
 /**********************************************************
-Housekeeping variables
-***********************************************************/
-int results;
-
-
-/**********************************************************
-Declare Functions
+Declare Functions to allow forward references
 ***********************************************************/
 int spiTxRx(unsigned char txDat);
-int sendCommand(char i, int j, int k);
+int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 );
 
 
-
+// Simple demonstration / test loop
+// Exercises this protocol in a sandbox
+// Allows working on the basic protocol and structure
 int main (void)
 {
 
-  printf("OK, lets get this party started\n");
+  printf("Initializing Raspberry Pi SPI port.\n");
 
   wiringPiSetup();  // set up the Pi library to enable directly controlling GPIO pins
   pinMode(6, OUTPUT); // set GPIO.6, ie. BCM 25 ie. physical pin 22 as output
   digitalWrite(6, HIGH); // set GPIO.6, high, to enable outputs on the SPI level translater from Raspberry to Arduino Mega
 
-
   /**********************************************************
   Setup SPI
   Open file spidev0.0 (chip enable 0) for read/write access
-  with the file descriptor "fd"
+  with the file descriptor "fdSPI"
   Configure transfer speed (1MkHz)
   ***********************************************************/
-   fd = open("/dev/spidev0.0", O_RDWR);
+  fdSPI = open("/dev/spidev0.0", O_RDWR);
 
-   unsigned int speed = 1000000;
-   ioctl (fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+  unsigned int speed = 1000000;
+  ioctl (fdSPI, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
 
-  printf ("made it past the register initialization...\n");
-  cout << "does cout actually work?";
+  printf ("Raspberry Pi SPI port initialization complete.\n");
+  
+  while (1)
+  {
+    int xferSuccess = 0;
+    xferSuccess = doSPItransfer('a', 0, 50, 25, 300, 549);
+    if (xferSuccess == 1)
+    {
+      cout << "Transfer successful." << endl;
+      cout << "Byte1: " << (char) receivedByte1 << endl;
+      cout << "Byte2: " << (signed char) receivedByte2 << endl;
+      cout << "Byte3: " << (signed char) receivedByte3 << endl;      
+      cout << "Long1: " << receivedLong1 << endl;
+      cout << "Long2: " << receivedLong2 << endl;
+      cout << "Long3: " << receivedLong3 << endl;
+      cout << endl;
+    } else
+    {
+      cout << "Transfer failed. Transfer request initiated but no acknowledge received." << endl;
+      cout << endl;
+    } 
 
-  /**********************************************************
-  An endless loop that repeatedly sends simple math problems
-  to the Arduino, captures the results & writes the results to console
-  ***********************************************************/
-   while (1)
-   {
-
-  // this version sends a single byte operand command and two separate two-byte parameters
-  // Each execution of sendCommand() transfers 8 bytes in each direction
-      results = sendCommand('a', 510, 655);
-
-      cout << "Addition results:" << endl;
-      cout << "510 + 655 = " <<  (int)(results) << endl;
-
-
-      results = sendCommand('s', 1000, 250);
-
-      cout << "Subtraction results:" << endl;
-      cout << "1000 - 250 = " <<  (int)(results) << endl <<endl; 
-
-      sleep(1);
-   }
+    sleep(2);
+  }
 }
+
 
 /**********************************************************
 spiTxRx
@@ -131,114 +137,158 @@ int spiTxRx(unsigned char txDat)
   spi.rx_buf        = (unsigned long)&rxDat;
   spi.len           = 1;
 
-  ioctl (fd, SPI_IOC_MESSAGE(1), &spi);
+  ioctl (fdSPI, SPI_IOC_MESSAGE(1), &spi);
 
   return rxDat;
 }
 
 
-/**********************************************************
-sendCommand
- Demonstration of a protocol that uses the spiTxRx function
- to send a formatted command sequence/packet to the Arduino
- one byte at and capture the results
-***********************************************************/
-int sendCommand(char command, int j, int k)
+// Purpose:  
+//    send commands and data from Pi master to Arduino Mega slave
+//    receive data from Arduino Mega slave
+//    MVP - initial value is simply to transfer TurnVelocity and Throttle commands between Pi master and Arduino slave
+//    Is designed to provide a simple protocol that enables transferring lots more information later, 
+//      by invoking these communication functions but without having to revist the protocol...
+// Inputs
+//    command - placeholder byte. intended to provide flexibility, and allow passing a command, 
+//        for example, requesting some specific values, or by defining how to interpret following values
+//    TurnVelocity -> intended to provide a 'turn velocity' setpoint value from the Pi master to the Arduino slave
+//    Throttle -> intended to provide a 'throttle' setpoint value from the Pi master to the Arduino slave
+//    param1, param2, param3 -> placeholders  for future development to allow transferring more info from the Pi master to the Arduino slave
+//    external variables intended to receive values from SPI slave
+// Algorithm
+//    protocol / transfer mechanics mostly build on
+//      http://robotics.hobbizine.com/raspiduino.html
+//        and 
+//      https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
+// Expected values returned via SPI
+//    1st byte / ie. received in exchange for 'command'
+//      -> placeholder byte for future development. No specific meaning defined.
+//    2nd byte / received in exchange for 'TurnVelocity'
+//      -> intended to allow the Arduino slave to inform the Pi master of current commanded values
+//      -> e.g. for the case where robot is being manually driven around by a controller connected to Arduino,
+//      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar
+//    3rd byte / received in exchange for 'Throttle' 
+//      -> intended to allow the Arduino slave to inform the Pi master of current commanded values
+//      -> e.g. for the case where robot is being manually driven around by a controller connected to Arduino,
+//      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar
+//    last 12 bytes / received in exchange for 'param1', 'param2' and 'param3
+//      -> placeholder bytes for future development. No specific meaning defined.
+// Outputs
+//    returns 1 for successful transfer
+//    returns -1 if transfer unsuccessful, e.g. slave times out / does not acknowledge start of burst
+//    updates external variables with received/ buffered values at end of successful transfer
+//    note: only updates external variables if it appears that transfer was successful
+int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 )
 {
 
-unsigned char resultByte;
-bool ack;
+  unsigned char byteFromSPI;
+  bool ack;
 
-/**********************************************************
-Unions allow variables to occupy the same memory space
-a convenient way to move back and forth between 8-bit and
-16-bit values etc.
+// use unions to simplify references to variables by individual bytes or as different types
+  union byteUnion
+  {
+    char asChar;
+    signed char asSignedChar;
+    unsigned char asUnsignedChar;
+  };
 
-Here three unions are declared: two for parameters to be 
-passed in commands to the Arduino and one to receive
-the results
-***********************************************************/
+  union longUnion       
+  {
+    long  asLong;
+    unsigned char  asByte [4];
+  };
 
-union p1Buffer_T       
-{
-  int p1Int;
-  unsigned char  p1Char [2];
-} p1Buffer;
+  union byteUnion toSPIBufferByte1, toSPIBufferByte2, toSPIBufferByte3;
+  union byteUnion fromSPIBufferByte1, fromSPIBufferByte2, fromSPIBufferByte3;
 
-union p2Buffer_T      
-{
-  int p2Int;
-  unsigned char  p2Char [2];
-} p2Buffer;
+  union longUnion toSpiBufferLong1, toSpiBufferLong2, toSpiBufferLong3 ;
+  union longUnion fromSpiBufferLong1, fromSpiBufferLong2, fromSpiBufferLong3 ;
 
-union resultBuffer_T     
-{
-  int resultInt;
-  unsigned char  resultChar [2];
-} resultBuffer;
+  toSPIBufferByte1.asChar = command;
+  toSPIBufferByte2.asSignedChar = TurnVelocity;
+  toSPIBufferByte3.asSignedChar = Throttle;
 
-
-  p1Buffer.p1Int = j;
-  p2Buffer.p2Int = k;
-  resultBuffer.resultInt = 0;
+  toSpiBufferLong1.asLong = param1;
+  toSpiBufferLong2.asLong = param2;
+  toSpiBufferLong3.asLong = param3;
 
   /**********************************************************
-  An initial handshake sequence sends a one byte start code
-  ('c') and loops endlessly until it receives the one byte 
-  acknowledgment code ('a') and sets the ack flag to true.
+  Start handshake sequence: send a one byte start code
+  ('s' for start) and loop until receive a one byte 
+  acknowledgment code ('a').
   (Note that the loop also sends the command byte while 
   still in handshake sequence to avoid wasting a transmit
   cycle.)
   ***********************************************************/
+  int wdCounter = 0;
   do
   {
     ack = false;
 
-    spiTxRx('c');
+    // this is the first'header' byte in a burst handshake
+    spiTxRx('s');     
     usleep (10);
 
-
-    resultByte = spiTxRx(command);
-    if (resultByte == 'a')
+    // this is the second 'header' byte in a burst handshake
+    // send a dummy value to fetch an acknowledge byte to determine if the slave is present in a state to proceed
+    byteFromSPI = spiTxRx( 0 );
+    if (byteFromSPI == 'a')
     {
       ack = true;
     }
-    usleep (10);  
+    usleep (10);
 
-   }
+    if (wdCounter > 17)   
+    {
+      // a prior partial transfer of 15 payload + 2 header bytes should've cleared by now
+      // this limits disrupting the slave to a handful of SPI interrupts during each approx 4.5 ms attempt to connect
+      return 0;   // hence -> declare an error, SPI slave unresponsive
+    }
+    wdCounter++;
+  }
   while (ack == false);
 
-  /**********************************************************
-  Send the parameters one byte at a time.
-  ***********************************************************/
+  // the remaining bytes are payload, and are numbered 1 thru 15.
+  //    hence, this protocol nominally consists of 17 byte bursts, 2 header + 15 payload
 
-  spiTxRx(p1Buffer.p1Char[0]);
-  usleep (10);
+  // send Byte1 (command) and fetch Byte1 (command) from slave
+  fromSPIBufferByte1.asUnsignedChar = spiTxRx(toSPIBufferByte1.asUnsignedChar);
 
+  // send Byte2 (TurnVelocity) and fetch Byte2 (TurnVelocity) from slave
+  fromSPIBufferByte2.asUnsignedChar = spiTxRx(toSPIBufferByte2.asUnsignedChar);
 
-  spiTxRx(p1Buffer.p1Char[1]);
-  usleep (10);
+  // send Byte3 (Throttle) and fetch Byte3 (Throttle) from slave
+  fromSPIBufferByte3.asUnsignedChar = spiTxRx(toSPIBufferByte3.asUnsignedChar);
 
+  int i=0; 
+  // send bytes 4 thru 7 (param1) and fetch response     
+  for (i = 0; i <= 3; i++) 
+  {
+    fromSpiBufferLong1.asByte[i] = spiTxRx(toSpiBufferLong1.asByte[i]);
+  }   
 
-  spiTxRx(p2Buffer.p2Char[0]);
-  usleep (10);
+  // send bytes 8 thru 11 (param2) and fetch response     
+  for (i = 0; i <= 3; i++) 
+  {
+    fromSpiBufferLong2.asByte[i] = spiTxRx(toSpiBufferLong2.asByte[i]);
+  }   
 
+  // send bytes 12 thru 15 (param3) and fetch response     
+  for (i = 0; i <= 3; i++) 
+  {
+    fromSpiBufferLong3.asByte[i] = spiTxRx(toSpiBufferLong3.asByte[i]);
+  }   
 
-  spiTxRx(p2Buffer.p2Char[1]);
-  usleep (10);
+  // transfer appears to be successful
+  // => hence, assign all received values to external variable dependencies
+  receivedByte1 = fromSPIBufferByte1.asUnsignedChar;
+  receivedByte2 = fromSPIBufferByte2.asUnsignedChar;
+  receivedByte3 = fromSPIBufferByte3.asUnsignedChar;
 
-  /**********************************************************
-  Push two more zeros through so the Arduino can return the
-  results
-  ***********************************************************/
+  receivedLong1 = fromSpiBufferLong1.asLong;
+  receivedLong2 = fromSpiBufferLong2.asLong;
+  receivedLong3 = fromSpiBufferLong3.asLong;
 
-  resultByte = spiTxRx(0);
-  resultBuffer.resultChar[0] = resultByte;
-  usleep (10);
-
-
-  resultByte = spiTxRx(0);
-  resultBuffer.resultChar[1] = resultByte;
-  return resultBuffer.resultInt;
-
+  return 1;   // declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
 }
