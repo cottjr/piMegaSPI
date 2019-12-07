@@ -55,8 +55,8 @@ union longUnion
 union byteUnion toSPIBufferByte1, toSPIBufferByte2, toSPIBufferByte3;
 union byteUnion fromSPIBufferByte1, fromSPIBufferByte2, fromSPIBufferByte3;
 
-union longUnion toSpiBufferLong1, toSpiBufferLong2, toSpiBufferLong3 ;
-union longUnion fromSpiBufferLong1, fromSpiBufferLong2, fromSpiBufferLong3 ;
+union longUnion toSPIBufferLong1, toSPIBufferLong2, toSPIBufferLong3 ;
+union longUnion fromSPIBufferLong1, fromSPIBufferLong2, fromSPIBufferLong3 ;
 
 // placeholder variables to provide interface between the SPI service and the functions using the SPI service
 // ToDo -> eventually refactor these for more clean & abstracted interface to SPI service
@@ -88,26 +88,26 @@ unsigned char setDataForPi (char command, signed char TurnVelocity, signed char 
     toSPIBufferLong2.asLong = param2;
     toSPIBufferLong3.asLong = param3;
 
-    sendBuffer[0] = toSPIBufferByte1.asUnsignedchar;
-    sendBuffer[1] = toSPIBufferByte2.asUnsignedchar;
-    sendBuffer[2] = toSPIBufferByte3.asUnsignedchar;
+    sendBuffer[0] = toSPIBufferByte1.asUnsignedChar;
+    sendBuffer[1] = toSPIBufferByte2.asUnsignedChar;
+    sendBuffer[2] = toSPIBufferByte3.asUnsignedChar;
     int i; 
     // queue bytes 4 thru 7 (param1)     
     for (i = 3; i <= 6; i++) 
     {
-      sendBuffer[i] = toSpiBufferLong1.asByte[i-3];
+      sendBuffer[i] = toSPIBufferLong1.asByte[i-3];
     }   
 
     // queue bytes 8 thru 11 (param2)     
     for (i = 7; i <= 10; i++) 
     {
-      sendBuffer[i] = toSpiBufferLong2.asByte[i-7];
+      sendBuffer[i] = toSPIBufferLong2.asByte[i-7];
     }   
 
     // queue bytes 12 thru 15 (param3)     
     for (i = 11; i <= 14; i++) 
     {
-      sendBuffer[i] = toSpiBufferLong3.asByte[i-11];
+      sendBuffer[i] = toSPIBufferLong3.asByte[i-11];
     }               
     interrupts();
     digitalWrite(digTP29, LOW);
@@ -126,27 +126,27 @@ unsigned char getLatestDataFromPi ()
   noInterrupts();
   if ( SPIxferInProgress == 0)
   {
-    fromSPIBufferByte1.unsignedChar = receiveBuffer[0];
-    fromSPIBufferByte2.unsignedChar = receiveBuffer[1];
-    fromSPIBufferByte3.unsignedChar = receiveBuffer[2];
+    fromSPIBufferByte1.asUnsignedChar = receiveBuffer[0];
+    fromSPIBufferByte2.asUnsignedChar = receiveBuffer[1];
+    fromSPIBufferByte3.asUnsignedChar = receiveBuffer[2];
 
     int i; 
     // fetch bytes 4 thru 7 (param1)     
     for (i = 3; i <= 6; i++) 
     {
-      fromSpiBufferLong1.asByte[i-3] = receiveBuffer[i];
+      fromSPIBufferLong1.asByte[i-3] = receiveBuffer[i];
     }   
 
     // fetch bytes 8 thru 11 (param2)     
     for (i = 7; i <= 10; i++) 
     {
-      fromSpiBufferLong2.asByte[i-7] = receiveBuffer[i];
+      fromSPIBufferLong2.asByte[i-7] = receiveBuffer[i];
     }   
 
     // fetch bytes 12 thru 15 (param3)     
     for (i = 11; i <= 14; i++) 
     {
-      fromSpiBufferLong3.asByte[i-11] = receiveBuffer[i];
+      fromSPIBufferLong3.asByte[i-11] = receiveBuffer[i];
     }      
 
     commandFromPi = fromSPIBufferByte1.asChar;
@@ -274,10 +274,11 @@ ISR (SPI_STC_vect)
       receiveBuffer[SPIxferIndex] = SPDR;
       SPIxferIndex++; 
       SPDR = sendBuffer[SPIxferIndex];    // queue the next byte to be transferred
+    }
 }
 
 
-void loop (void)
+void loop ()
 {
 
   if ( newSPIdataAvailable == 1 )
@@ -286,15 +287,15 @@ void loop (void)
     newSPIdataAvailable = 0;  
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");
     Serial.print(commandFromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(TurnVelocityFromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(ThrottleFromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(param1FromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(param2FromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.println(param3FromPi);
   }
   Serial.println("queuing for PI: p, -50, +13, 248, 399, 425");
@@ -307,15 +308,15 @@ void loop (void)
     newSPIdataAvailable = 0;
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");  
     Serial.print(commandFromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(TurnVelocityFromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(ThrottleFromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(param1FromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.print(param2FromPi);
-    Serial.print(', ');
+    Serial.print(", ");
     Serial.println(param3FromPi);
 
   }
