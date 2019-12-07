@@ -95,8 +95,8 @@ int main (void)
     {
       cout << "Transfer successful." << endl;
       cout << "Byte1: " << (char) receivedByte1 << endl;
-      cout << "Byte2: " << (signed char) receivedByte2 << endl;
-      cout << "Byte3: " << (signed char) receivedByte3 << endl;      
+      cout << "Byte2: " << (int) (signed char) receivedByte2 << endl;
+      cout << "Byte3: " << (int) (signed char) receivedByte3 << endl;      
       cout << "Long1: " << receivedLong1 << endl;
       cout << "Long2: " << receivedLong2 << endl;
       cout << "Long3: " << receivedLong3 << endl;
@@ -202,16 +202,16 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
   union byteUnion toSPIBufferByte1, toSPIBufferByte2, toSPIBufferByte3;
   union byteUnion fromSPIBufferByte1, fromSPIBufferByte2, fromSPIBufferByte3;
 
-  union longUnion toSpiBufferLong1, toSpiBufferLong2, toSpiBufferLong3 ;
-  union longUnion fromSpiBufferLong1, fromSpiBufferLong2, fromSpiBufferLong3 ;
+  union longUnion toSPIBufferLong1, toSPIBufferLong2, toSPIBufferLong3 ;
+  union longUnion fromSPIBufferLong1, fromSPIBufferLong2, fromSPIBufferLong3 ;
 
   toSPIBufferByte1.asChar = command;
   toSPIBufferByte2.asSignedChar = TurnVelocity;
   toSPIBufferByte3.asSignedChar = Throttle;
 
-  toSpiBufferLong1.asLong = param1;
-  toSpiBufferLong2.asLong = param2;
-  toSpiBufferLong3.asLong = param3;
+  toSPIBufferLong1.asLong = param1;
+  toSPIBufferLong2.asLong = param2;
+  toSPIBufferLong3.asLong = param3;
 
   /**********************************************************
   Start handshake sequence: send a one byte start code
@@ -265,19 +265,19 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
   // send bytes 4 thru 7 (param1) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
-    fromSpiBufferLong1.asByte[i] = spiTxRx(toSpiBufferLong1.asByte[i]);
+    fromSPIBufferLong1.asByte[i] = spiTxRx(toSPIBufferLong1.asByte[i]);
   }   
 
   // send bytes 8 thru 11 (param2) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
-    fromSpiBufferLong2.asByte[i] = spiTxRx(toSpiBufferLong2.asByte[i]);
+    fromSPIBufferLong2.asByte[i] = spiTxRx(toSPIBufferLong2.asByte[i]);
   }   
 
   // send bytes 12 thru 15 (param3) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
-    fromSpiBufferLong3.asByte[i] = spiTxRx(toSpiBufferLong3.asByte[i]);
+    fromSPIBufferLong3.asByte[i] = spiTxRx(toSPIBufferLong3.asByte[i]);
   }   
 
   // transfer appears to be successful
@@ -286,9 +286,9 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
   receivedByte2 = fromSPIBufferByte2.asUnsignedChar;
   receivedByte3 = fromSPIBufferByte3.asUnsignedChar;
 
-  receivedLong1 = fromSpiBufferLong1.asLong;
-  receivedLong2 = fromSpiBufferLong2.asLong;
-  receivedLong3 = fromSpiBufferLong3.asLong;
+  receivedLong1 = fromSPIBufferLong1.asLong;
+  receivedLong2 = fromSPIBufferLong2.asLong;
+  receivedLong3 = fromSPIBufferLong3.asLong;
 
   return 1;   // declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
 }
