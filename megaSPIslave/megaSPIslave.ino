@@ -268,13 +268,13 @@ ISR (SPI_STC_vect)
       SPIxferIndex = -2;
       SPIxferInProgress = 0;  // flag to external functions that the receiveBuffer can be trusted
       newSPIdataAvailable = 1; // flag to external functions that new data is now available
-      digitalWrite(digTP28, LOW);   
       break;
     default:   // otherwise, receive index 0..13 (ie. payload bytes 1..14) & advance SPIxferIndex to next state
       receiveBuffer[SPIxferIndex] = SPDR;
       SPIxferIndex++; 
       SPDR = sendBuffer[SPIxferIndex];    // queue the next byte to be transferred
     }
+    digitalWrite(digTP28, LOW);   
 }
 
 
