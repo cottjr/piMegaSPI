@@ -68,6 +68,13 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
 int main (void)
 {
 
+  receivedByte1 = 0;
+  receivedByte2 = 0;
+  receivedByte3 = 0;
+  receivedLong1 = 0;
+  receivedLong2 = 0;
+  receivedLong3 = 0;
+
   printf("Initializing Raspberry Pi SPI port.\n");
 
   wiringPiSetup();  // set up the Pi library to enable directly controlling GPIO pins
@@ -213,6 +220,13 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
   toSPIBufferLong2.asLong = param2;
   toSPIBufferLong3.asLong = param3;
 
+  fromSPIBufferByte1.asUnsignedChar = 0;
+  fromSPIBufferByte2.asUnsignedChar = 0;
+  fromSPIBufferByte3.asUnsignedChar = 0;
+  fromSPIBufferLong1.asLong = 0;
+  fromSPIBufferLong2.asLong = 0;
+  fromSPIBufferLong3.asLong = 0;
+
   /**********************************************************
   Start handshake sequence: send a one byte start code
   ('s' for start) and loop until receive a one byte 
@@ -243,7 +257,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
     {
       // a prior partial transfer of 15 payload + 2 header bytes should've cleared by now
       // this limits disrupting the slave to a handful of SPI interrupts during each approx 4.5 ms attempt to connect
-      return 0;   // hence -> declare an error, SPI slave unresponsive
+      return 0;   // hence -> declare an error, SPI slave unresponsive and leave receivedByte1..3 and receivedLong1..3 unchanged
     }
     wdCounter++;
   }
@@ -282,6 +296,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
 
   // transfer appears to be successful
   // => hence, assign all received values to external variable dependencies
+  // avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
   receivedByte1 = fromSPIBufferByte1.asUnsignedChar;
   receivedByte2 = fromSPIBufferByte2.asUnsignedChar;
   receivedByte3 = fromSPIBufferByte3.asUnsignedChar;

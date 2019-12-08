@@ -60,15 +60,15 @@ union longUnion fromSPIBufferLong1, fromSPIBufferLong2, fromSPIBufferLong3 ;
 
 // placeholder variables to provide interface between the SPI service and the functions using the SPI service
 // ToDo -> eventually refactor these for more clean & abstracted interface to SPI service
-signed char TurnVelocityFromMega;
-signed char ThrottleFromMega;
+signed char TurnVelocityFromMega = 0;
+signed char ThrottleFromMega = 0;
 
-char commandFromPi;
-signed char TurnVelocityFromPi;
-signed char ThrottleFromPi;
-long param1FromPi;
-long param2FromPi;
-long param3FromPi;
+char commandFromPi = 0;
+signed char TurnVelocityFromPi = 0;
+signed char ThrottleFromPi = 0;
+long param1FromPi = 0;
+long param2FromPi = 0;
+long param3FromPi = 0;
 
 // Purpose
 //  Fill the SPI transfer buffer with data to be sent to the SPI master on the next SPI byte exchange
