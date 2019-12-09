@@ -71,7 +71,7 @@ long param2FromPi = 0;
 long param3FromPi = 0;
 
 // Purpose
-//  Fill the SPI transfer buffer with data to be sent to the SPI master on the next SPI byte exchange
+//  Fill the SPI transfer buffer with payload data to be sent to the SPI master on the next SPI byte exchange
 unsigned char setDataForPi (char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 )
 {
   // write to digTP29, to facilitate timing measurements via oscilloscope
@@ -217,17 +217,14 @@ Algorithm & protocol derived from polled example code spiHandler()
   ie. crom http://robotics.hobbizine.com/raspiduino.html
    Uses the SPIxferIndex variable to keep track current position in the
    incoming data packet and execute accordingly
-   0   - wait for to receive start byte - once received send
-         the acknowledge byte
-   1   - the command to add or subtract
-   2-5 - two integer parameters to be added or subtracted
-       - when the last byte (5) is received, call the
-         executeCommand function and load the first byte of the
-         result into SPDR
-   6   - transmit the first byte of the result and load the 
-         second byte into SPDR
-   7   - transmit the second byte of of the result and reset
-         the SPIxferIndex   
+   State  -> Meaning & Action
+   -2     - wait for to receive start byte
+   -1     - once received start byte, send an acknowledge byte
+   0..13  - exchange payoad bytes
+   14     - exchange the last payload byte, queue a final 'end of burst' handshake byte
+   15     - exchange & verify final 'end of burst' handshake byte, 
+            flag new / valid data received or not
+            reset the protocol burst state machine
 ****************************************************************/
 ISR (SPI_STC_vect)
 {
@@ -263,11 +260,24 @@ ISR (SPI_STC_vect)
       SPIxferIndex++;
       SPDR = sendBuffer[SPIxferIndex];   // queue the first byte to transfer from Mega slave to Pi master
       break;
-    case 14:   // ie. capture the 15th ie. final payload byte & reset the state machine.
+    case 14:   // ie. capture the 15th ie. final payload byte & queue and 'end of burst' acknowledge byte
       receiveBuffer[SPIxferIndex] = SPDR;
-      SPIxferIndex = -2;
-      SPIxferInProgress = 0;  // flag to external functions that the receiveBuffer can be trusted
-      newSPIdataAvailable = 1; // flag to external functions that new data is now available
+      SPIxferIndex++; 
+      SPDR = 'Z';   // queue an 'end of burst' handshake byte to be sent on the next transfer
+                    // => give confidence (albeit not certainty) that the payload bytes transferred between 'a' and 'z' can be trusted
+      break;
+    case 15:   // ie. verify that just exchanged what should be a final handshaking byte - 'Z' for 'z'. Reset the state machine.
+      if (SPDR == 'z')    // verify that the protocol burst state machines were in sync for both SPI master and slave 
+      {
+        newSPIdataAvailable = 1;  // as best we can tell, the payload bytes between 'a' and 'z' can be trusted
+                                  // flag to external functions that new data is now available
+      } else
+      {
+        newSPIdataAvailable = 0; // flag to external functions that NO new data is available
+      }
+      SPDR = 0;               // queue a 'defined value' null byte for the next SPI transfer, whenever that may be
+      SPIxferIndex = -2;      // reset the state machine
+      SPIxferInProgress = 0;  // flag to external functions that the receiveBuffer should be trustable.
       break;
     default:   // otherwise, receive index 0..13 (ie. payload bytes 1..14) & advance SPIxferIndex to next state
       receiveBuffer[SPIxferIndex] = SPDR;

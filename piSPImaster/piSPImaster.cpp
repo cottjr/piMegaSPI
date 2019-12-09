@@ -110,7 +110,15 @@ int main (void)
       cout << endl;
     } else
     {
-      cout << "Transfer failed. Transfer request initiated but no acknowledge received." << endl;
+      cout << "Transfer failed.";
+      if (xferSuccess == 0)
+      {
+        cout << "  Transfer request initiated but no acknowledge received." << endl;
+      }
+      if (xferSuccess == 2)
+      {
+        cout << "  Transfer burst started as expected, but then SPI slave appears to have gotten out of sync during the burst." << endl;
+      }
       cout << endl;
     } 
 
@@ -168,7 +176,7 @@ int spiTxRx(unsigned char txDat)
 //      http://robotics.hobbizine.com/raspiduino.html
 //        and 
 //      https://roboticsbackend.com/raspberry-pi-master-arduino-uno-slave-spi-communication-with-wiringpi/
-// Expected values returned via SPI
+// Expected Payload values returned via SPI
 //    1st byte / ie. received in exchange for 'command'
 //      -> placeholder byte for future development. No specific meaning defined.
 //    2nd byte / received in exchange for 'TurnVelocity'
@@ -181,6 +189,10 @@ int spiTxRx(unsigned char txDat)
 //      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar
 //    last 12 bytes / received in exchange for 'param1', 'param2' and 'param3
 //      -> placeholder bytes for future development. No specific meaning defined.
+// Expected end of transfer marker returned via SPI
+//    one final byte from Arduino mega slave, providing a known byte,
+//      -> intended to give confidence to the Pi master that the payload can be trusted
+//      -> this safeguard was implemented after observing corruptions in payload bytes 2..14 in commit 50ecd83 and earlier
 // Outputs
 //    returns 1 for successful transfer
 //    returns -1 if transfer unsuccessful, e.g. slave times out / does not acknowledge start of burst
@@ -300,16 +312,24 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
     usleep (10);
   }   
 
-  // transfer appears to be successful
-  // => hence, assign all received values to external variable dependencies
-  // avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
-  receivedByte1 = fromSPIBufferByte1.asUnsignedChar;
-  receivedByte2 = fromSPIBufferByte2.asUnsignedChar;
-  receivedByte3 = fromSPIBufferByte3.asUnsignedChar;
+  // this is the last 'handshaking' byte in a burst
+  // it is intended for master and slave to indicate to each other that they expect this to be the final byte transferred in a burst
+  // => and give confidence (albeit not certainty) that the payload bytes transferred between 'a' and 'z' can be trusted
+  byteFromSPI = spiTxRx( 'z' );   // note - Pi master sends a lower case 'z'
+  if (byteFromSPI == 'Z')         // note - Arduino slave must send an upper case 'Z'
+  {
+    // transfer appears to be successful
+    // => hence, assign all received values to external variable dependencies
+    // avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
+    receivedByte1 = fromSPIBufferByte1.asUnsignedChar;
+    receivedByte2 = fromSPIBufferByte2.asUnsignedChar;
+    receivedByte3 = fromSPIBufferByte3.asUnsignedChar;
 
-  receivedLong1 = fromSPIBufferLong1.asLong;
-  receivedLong2 = fromSPIBufferLong2.asLong;
-  receivedLong3 = fromSPIBufferLong3.asLong;
+    receivedLong1 = fromSPIBufferLong1.asLong;
+    receivedLong2 = fromSPIBufferLong2.asLong;
+    receivedLong3 = fromSPIBufferLong3.asLong;
+    return 1;   // declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
+  }
 
-  return 1;   // declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
+  return 2;   // declare -> declare an error, transfer burst started as expected, but then SPI slave appears to have gotten out of sync during the burst
 }
