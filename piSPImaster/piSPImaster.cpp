@@ -122,7 +122,7 @@ int main (void)
       cout << endl;
     } 
 
-    sleep(2);
+    delay(20);
   }
 }
 
