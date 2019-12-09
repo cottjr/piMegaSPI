@@ -268,30 +268,36 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
 
   // send Byte1 (command) and fetch Byte1 (command) from slave
   fromSPIBufferByte1.asUnsignedChar = spiTxRx(toSPIBufferByte1.asUnsignedChar);
+  usleep (10);
 
   // send Byte2 (TurnVelocity) and fetch Byte2 (TurnVelocity) from slave
   fromSPIBufferByte2.asUnsignedChar = spiTxRx(toSPIBufferByte2.asUnsignedChar);
+  usleep (10);
 
   // send Byte3 (Throttle) and fetch Byte3 (Throttle) from slave
   fromSPIBufferByte3.asUnsignedChar = spiTxRx(toSPIBufferByte3.asUnsignedChar);
+  usleep (10);
 
   int i=0; 
   // send bytes 4 thru 7 (param1) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong1.asByte[i] = spiTxRx(toSPIBufferLong1.asByte[i]);
+    usleep (10);
   }   
 
   // send bytes 8 thru 11 (param2) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong2.asByte[i] = spiTxRx(toSPIBufferLong2.asByte[i]);
+    usleep (10);
   }   
 
   // send bytes 12 thru 15 (param3) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong3.asByte[i] = spiTxRx(toSPIBufferLong3.asByte[i]);
+    usleep (10);
   }   
 
   // transfer appears to be successful
