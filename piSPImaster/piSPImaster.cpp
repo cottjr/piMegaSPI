@@ -53,7 +53,7 @@ int fdSPI;              // pointer to SPI port
 // for a real instance, these values would be bound to dependent code.
 unsigned char receivedByte1, receivedByte2, receivedByte3;
 long receivedLong1, receivedLong2, receivedLong3;
-
+unsigned int errorCountSPIrx = 0;
 
 /**********************************************************
 Declare Functions to allow forward references
@@ -107,6 +107,7 @@ int main (void)
       cout << "Long1: " << receivedLong1 << endl;
       cout << "Long2: " << receivedLong2 << endl;
       cout << "Long3: " << receivedLong3 << endl;
+      cout << "Running SPI burst receive error count: " << errorCountSPIrx << endl;
       cout << endl;
     } else
     {
@@ -122,7 +123,7 @@ int main (void)
       cout << endl;
     } 
 
-    delay(20);
+    delay(14);
   }
 }
 
@@ -331,5 +332,6 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
     return 1;   // declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
   }
 
+  errorCountSPIrx++;  // bump the SPI transfer error count
   return 2;   // declare -> declare an error, transfer burst started as expected, but then SPI slave appears to have gotten out of sync during the burst
 }
