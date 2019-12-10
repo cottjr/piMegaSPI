@@ -101,13 +101,13 @@ int main (void)
     if (xferSuccess == 1)
     {
       cout << "Transfer successful." << endl;
-      cout << "Byte1: " << (char) receivedByte1 << endl;
-      cout << "Byte2: " << (int) (signed char) receivedByte2 << endl;
-      cout << "Byte3: " << (int) (signed char) receivedByte3 << endl;      
-      cout << "Long1: " << receivedLong1 << endl;
-      cout << "Long2: " << receivedLong2 << endl;
-      cout << "Long3: " << receivedLong3 << endl;
-      cout << "Running SPI burst receive error count: " << errorCountSPIrx << endl;
+      cout << "B1: " << (char) receivedByte1 << endl;
+      cout << "B2: " << (int) (signed char) receivedByte2 << endl;
+      // cout << "B3: " << (int) (signed char) receivedByte3 << endl;      
+      // cout << "L1: " << receivedLong1 << endl;
+      // cout << "L2: " << receivedLong2 << endl;
+      // cout << "L3: " << receivedLong3 << endl;
+      cout << "Running SPI burst rx err count: " << errorCountSPIrx << endl;
       cout << endl;
     } else
     {
@@ -123,7 +123,7 @@ int main (void)
       cout << endl;
     } 
 
-    delay(14);
+    delay(2);
   }
 }
 
