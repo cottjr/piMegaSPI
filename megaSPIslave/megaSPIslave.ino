@@ -22,7 +22,10 @@
 
 // SPI service state machine variables
 volatile unsigned char receiveBuffer[15]; // temporary buffer for bytes coming from the SPI master
-volatile unsigned char sendBuffer[15]; // temporary buffer for bytes to be sent to SPI master in the next burst                        
+volatile unsigned char sendBuffer[2][15]; // temporary buffer for bytes to be sent to SPI master in the next burst
+                                          // double buffer allows setting next burst values even if a current burst is in progress
+volatile unsigned char sendBufferSelect = 0;  // currently seleted sendBuffer. start with the 0th sendBuffer                                                                
+volatile unsigned char toggleSendBuffer = 0;  // flag to indicate whether to use the other sendBuffer on the next SPI transfer
 
 volatile signed char SPIxferIndex = -2;   // state machine tracker- index to byte within incoming SPI burst
                                     // start at -2 to account for 2 header bytes in this protocol
@@ -73,54 +76,78 @@ long param3FromPi = 0;
 
 // Purpose
 //  Fill the SPI transfer buffer with payload data to be sent to the SPI master on the next SPI byte exchange
+// Algorithm
+//  always prepares the sendBuffer for the next transfer
+//  -> but queues the values to an alternate sendBuffer in case request to change the send buffer came during an ongoing SPI transfer
+// Output
+//  updates the sendBuffer with values to be shared at the next transfer(s)
+//  returns 0 if values queued during without an SPI transfer in progress
+//  returns 1 if values queued during an in-progress SPI transfer
 unsigned char setDataForPi (char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 )
 {
+  unsigned char nextSendBufferSelect;
+
   // write to digTP29, to facilitate timing measurements via oscilloscope
   digitalWrite(digTP29, HIGH);
 
   // synchronize processes - avoid corruption from writing/reading at the same time
   noInterrupts();
-  if ( SPIxferInProgress == 0)
+  if ( SPIxferInProgress == 1)
   {
-    toSPIBufferByte1.asChar = command;
-    toSPIBufferByte2.asSignedChar = TurnVelocity;
-    toSPIBufferByte3.asSignedChar = Throttle;
-    toSPIBufferLong1.asLong = param1;
-    toSPIBufferLong2.asLong = param2;
-    toSPIBufferLong3.asLong = param3;
-
-    sendBuffer[0] = toSPIBufferByte1.asUnsignedChar;
-    sendBuffer[1] = toSPIBufferByte2.asUnsignedChar;
-    sendBuffer[2] = toSPIBufferByte3.asUnsignedChar;
-    int i; 
-    // queue bytes 4 thru 7 (param1)     
-    for (i = 3; i <= 6; i++) 
+    toggleSendBuffer = 1;
+    if (sendBufferSelect == 1)
     {
-      sendBuffer[i] = toSPIBufferLong1.asByte[i-3];
-    }   
-
-    // queue bytes 8 thru 11 (param2)     
-    for (i = 7; i <= 10; i++) 
+      nextSendBufferSelect = 0;
+    }
+    else
     {
-      sendBuffer[i] = toSPIBufferLong2.asByte[i-7];
-    }   
-
-    // queue bytes 12 thru 15 (param3)     
-    for (i = 11; i <= 14; i++) 
-    {
-      sendBuffer[i] = toSPIBufferLong3.asByte[i-11];
-    }               
-    interrupts();
-    digitalWrite(digTP29, LOW);
-    return 1;   // indicate transfer request accepted
+      nextSendBufferSelect = 1;
+    }
+  }
+  else
+  {
+    nextSendBufferSelect = sendBufferSelect;
   }
   
+  toSPIBufferByte1.asChar = command;
+  toSPIBufferByte2.asSignedChar = TurnVelocity;
+  toSPIBufferByte3.asSignedChar = Throttle;
+  toSPIBufferLong1.asLong = param1;
+  toSPIBufferLong2.asLong = param2;
+  toSPIBufferLong3.asLong = param3;
+
+  sendBuffer[nextSendBufferSelect][0] = toSPIBufferByte1.asUnsignedChar;
+  sendBuffer[nextSendBufferSelect][1] = toSPIBufferByte2.asUnsignedChar;
+  sendBuffer[nextSendBufferSelect][2] = toSPIBufferByte3.asUnsignedChar;
+  int i; 
+  // queue bytes 4 thru 7 (param1)     
+  for (i = 3; i <= 6; i++) 
+  {
+    sendBuffer[nextSendBufferSelect][i] = toSPIBufferLong1.asByte[i-3];
+  }   
+
+  // queue bytes 8 thru 11 (param2)     
+  for (i = 7; i <= 10; i++) 
+  {
+    sendBuffer[nextSendBufferSelect][i] = toSPIBufferLong2.asByte[i-7];
+  }   
+
+  // queue bytes 12 thru 15 (param3)     
+  for (i = 11; i <= 14; i++) 
+  {
+    sendBuffer[nextSendBufferSelect][i] = toSPIBufferLong3.asByte[i-11];
+  }               
   interrupts();
   digitalWrite(digTP29, LOW);
-  
-  Serial.println("************** Oppps -> Collision -> SPI transfer in progress -> won't queue new values on this cycle........");
 
-  return 0; // indicate transfer request rejected
+  if (toggleSendBuffer == 0)
+  {
+    return 0;   // indicate transfer request accepted, no collision detected
+  }
+  else
+  {
+    return 1;   // indicate transfer request accepted, but collision detected so will toggle sendBuffer
+  }
 }
 
 // Purpose
@@ -262,8 +289,20 @@ ISR (SPI_STC_vect)
       // => in this case, we have just transferred acknowledge 'a' to the master, and have just received a junk byte
       // Hence do not bother reading the SPDR, because in this protocol, the 2nd header byte contains no information for Mega
       // As a potential improvement, this byte could be used to pass additional data from master to slave
+      if (toggleSendBuffer == 1)
+      {
+        toggleSendBuffer = 0;
+        if (sendBufferSelect == 1)
+        {
+          sendBufferSelect = 0;
+        }
+        else
+        {
+          sendBufferSelect = 1;
+        }
+      }
       SPIxferIndex++;
-      SPDR = sendBuffer[SPIxferIndex];   // queue the first byte to transfer from Mega slave to Pi master
+      SPDR = sendBuffer[sendBufferSelect][SPIxferIndex];   // queue the first byte to transfer from Mega slave to Pi master
       break;
     case 14:   // ie. capture the 15th ie. final payload byte & queue and 'end of burst' acknowledge byte
       receiveBuffer[SPIxferIndex] = SPDR;
@@ -288,7 +327,7 @@ ISR (SPI_STC_vect)
     default:   // otherwise, receive index 0..13 (ie. payload bytes 1..14) & advance SPIxferIndex to next state
       receiveBuffer[SPIxferIndex] = SPDR;
       SPIxferIndex++; 
-      SPDR = sendBuffer[SPIxferIndex];    // queue the next byte to be transferred
+      SPDR = sendBuffer[sendBufferSelect][SPIxferIndex];    // queue the next byte to be transferred
     }
     digitalWrite(digTP28, LOW);   
 }
@@ -320,10 +359,9 @@ void loop ()
     Serial.println("   or we happened to check when there was no new data...");
   }
   Serial.println("queuing for PI: p, -50, +13, 248, 399, 425");
-  if ( setDataForPi('p', -50, +13, 248, 399, 425) == 0)
+  if ( setDataForPi('p', -50, +13, 248, 399, 425) == 1)
   {
-    setDataForPi('p', -50, +13, 248, 399, 425); // presume there was a collision with in-progress transfer. just try to set the values again
-    Serial.println("-> detected collision with in-progress transfer and retried to queue values.");
+    Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
   }
   Serial.print(" xfer error count ");
   Serial.println(errorCountSPIrx);
@@ -353,10 +391,9 @@ void loop ()
     Serial.println("   or we happened to check when there was no new data...");
   }
   Serial.println("queuing for PI: q, 33, -87, 13987, 22459, 609942");
-  if (setDataForPi('q', 33, -87, 13987, 22459, 609942) == 0)
+  if (setDataForPi('q', 33, -87, 13987, 22459, 609942) == 1)
   {
-    setDataForPi('q', 33, -87, 13987, 22459, 609942); // presume there was a collision with in-progress transfer. just try to set the values again
-    Serial.println("-> detected collision with in-progress transfer and retried to queue values.");    
+    Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
   }
   Serial.println(); 
   Serial.print(" xfer error count ");
