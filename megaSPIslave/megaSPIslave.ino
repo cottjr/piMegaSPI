@@ -115,9 +115,11 @@ unsigned char setDataForPi (char command, signed char TurnVelocity, signed char 
     return 1;   // indicate transfer request accepted
   }
   
-  Serial.println("************** Oppps -> Collision -> SPI transfer in progress -> won't queue new values on this cycle........");
   interrupts();
   digitalWrite(digTP29, LOW);
+  
+  Serial.println("************** Oppps -> Collision -> SPI transfer in progress -> won't queue new values on this cycle........");
+
   return 0; // indicate transfer request rejected
 }
 
