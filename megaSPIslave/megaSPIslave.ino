@@ -33,6 +33,7 @@ volatile unsigned char SPIxferInProgress = 0; // flag using functions to determi
 
 volatile unsigned char newSPIdataAvailable = 0; // flag for using functions to determine when new data has been received
 
+volatile unsigned int errorCountSPIrx = 0;  // let's track apparent xfer failures
 
 // test points to monitor CPU status via o'scope
 #define digTP28 28  // digital test point #3 (Arduino Mega pin 28) 
@@ -113,6 +114,8 @@ unsigned char setDataForPi (char command, signed char TurnVelocity, signed char 
     digitalWrite(digTP29, LOW);
     return 1;   // indicate transfer request accepted
   }
+  
+  Serial.println("************** Oppps -> Collision -> SPI transfer in progress -> won't queue new values on this cycle........");
   interrupts();
   digitalWrite(digTP29, LOW);
   return 0; // indicate transfer request rejected
@@ -273,6 +276,7 @@ ISR (SPI_STC_vect)
                                   // flag to external functions that new data is now available
       } else
       {
+        errorCountSPIrx++;      // count as an error - we got this far, should have received a finaly handshake byte
         newSPIdataAvailable = 0; // flag to external functions that NO new data is available
       }
       SPDR = 0;               // queue a 'defined value' null byte for the next SPI transfer, whenever that may be
@@ -308,9 +312,20 @@ void loop ()
     Serial.print(", ");
     Serial.println(param3FromPi);
   }
+  else
+  {
+    Serial.println("-> no new data as expected. Either the most recent transfer failed,       ???");
+    Serial.println("   or we happened to check when there was no new data...");
+  }
   Serial.println("queuing for PI: p, -50, +13, 248, 399, 425");
-  setDataForPi('p', -50, +13, 248, 399, 425);
-  delay(3000);    
+  if ( setDataForPi('p', -50, +13, 248, 399, 425) == 0)
+  {
+    setDataForPi('p', -50, +13, 248, 399, 425); // presume there was a collision with in-progress transfer. just try to set the values again
+    Serial.println("-> detected collision with in-progress transfer and retried to queue values.");
+  }
+  Serial.print(" xfer error count ");
+  Serial.println(errorCountSPIrx);
+  delay(1000);    
 
   if ( newSPIdataAvailable == 1 )
   {
@@ -330,9 +345,20 @@ void loop ()
     Serial.println(param3FromPi);
 
   }
+    else
+  {
+    Serial.println("-> no new data as expected. Either the most recent transfer failed,,       ???");
+    Serial.println("   or we happened to check when there was no new data...");
+  }
   Serial.println("queuing for PI: q, 33, -87, 13987, 22459, 609942");
-  setDataForPi('q', 33, -87, 13987, 22459, 609942);
+  if (setDataForPi('q', 33, -87, 13987, 22459, 609942) == 0)
+  {
+    setDataForPi('q', 33, -87, 13987, 22459, 609942); // presume there was a collision with in-progress transfer. just try to set the values again
+    Serial.println("-> detected collision with in-progress transfer and retried to queue values.");    
+  }
   Serial.println(); 
-  delay(3000);    
+  Serial.print(" xfer error count ");
+  Serial.println(errorCountSPIrx);
+  delay(1000);    
 
 }
