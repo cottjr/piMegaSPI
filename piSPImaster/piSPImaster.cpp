@@ -123,7 +123,12 @@ int main (void)
       cout << endl;
     } 
 
-    delay(2);
+// after 3 hours 16 minutes, with no delay between bursts (ie. with the following delay() commented out), 
+// -> Pi SPI master had just 4 rx errors, Mega SPI slave had 1
+// But I noticed that PI SPI master errors increase when open this VS Code SSH connection
+// -> and wonder if the issue is partly related to Pi load & network connections & console log activity
+// => plus also, during this test, I was cycling network connectivity for teleCalm devices, attaching & disconnecting LTE520 for programming...
+    delay(4);
   }
 }
 
