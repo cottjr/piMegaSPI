@@ -27,8 +27,6 @@
 // signed char TurnVelocityFromMega = 0;
 // signed char ThrottleFromMega = 0;
 
-// Construct an interrupt driven class to manage SPI interactions as a slave
-spiSlave spiSlavePort;
                    
 void setup (void)
 {
@@ -52,7 +50,7 @@ void loop ()
     // ToDo -> add logic to test return value from getLatestDataFromPi()
     //  handle case of potential collision
     //  or better yet, come up with a double buffer scheme to avoid the need
-    spiSlave.getLatestDataFromPi ();
+    spiSlavePort.getLatestDataFromPi ();
     spiSlavePort.newSPIdataAvailable = 0;  
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");
     Serial.print(spiSlavePort.commandFromPi);
@@ -73,7 +71,7 @@ void loop ()
     Serial.println("   or we happened to check when there was no new data...");
   }
   Serial.println("queuing for PI: p, -50, +13, 248, 399, 425");
-  if ( spiSlave.setDataForPi('p', -50, +13, 248, 399, 425) == 1)
+  if ( spiSlavePort.setDataForPi('p', -50, +13, 248, 399, 425) == 1)
   {
     Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
   }
@@ -83,7 +81,7 @@ void loop ()
 
   if ( spiSlavePort.newSPIdataAvailable == 1 )
   {
-    spiSlave.getLatestDataFromPi ();
+    spiSlavePort.getLatestDataFromPi ();
     spiSlavePort.newSPIdataAvailable = 0;
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");  
     Serial.print(spiSlavePort.commandFromPi);
@@ -105,7 +103,7 @@ void loop ()
     Serial.println("   or we happened to check when there was no new data...");
   }
   Serial.println("queuing for PI: q, 33, -87, 13987, 22459, 609942");
-  if (spiSlave.setDataForPi('q', 33, -87, 13987, 22459, 609942) == 1)
+  if (spiSlavePort.setDataForPi('q', 33, -87, 13987, 22459, 609942) == 1)
   {
     Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
   }

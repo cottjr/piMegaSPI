@@ -1,6 +1,7 @@
-#ifndef spiSlave_h
-#define spiSlave_h
+// Facade / Adapter class to configure an Arduino Mega as an SPI slave and exchange byte payloads with an SPI master
 
+#ifndef spiSlave_H
+#define spiSlave_H
 
 class spiSlave
 {
@@ -10,9 +11,12 @@ class spiSlave
     #define digTP28 28  // digital test point #3 (Arduino Mega pin 28) 
     #define digTP29 29  // digital test point #4 (Arduino Mega pin 29) 
 
-    // Constructor
+    // Default Constructor
     //  Set digital output pins, set initial/default values to transfer to master
-    //  Initialize the SPI port and enable SPI interrupts
+    spiSlave();
+
+    //  Purpose
+    //      Initialize the SPI port as a slave and enable SPI interrupts
     void enable();
 
     // Purpose
@@ -41,6 +45,13 @@ class spiSlave
     long param2FromPi = 0;
     long param3FromPi = 0;
 
+    // Purpose
+    //  Interrupt handler
+    //  Assesses arrival of each byte received via SPI
+    // Note
+    //  exposed as public to enable visibility to the Arduino ISR (SPI_STC_vect)
+    // ==> do NOT call this method, in practice, it is internal to the spiSlave class
+    void spiISR();
 
 
     private:
@@ -80,5 +91,8 @@ class spiSlave
     union longUnion fromSPIBufferLong1, fromSPIBufferLong2, fromSPIBufferLong3 ;
 
 };
+
+// Construct an interrupt driven class to manage SPI interactions as a slave
+extern spiSlave spiSlavePort;
 
 #endif

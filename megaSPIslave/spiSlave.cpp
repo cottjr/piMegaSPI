@@ -1,4 +1,4 @@
-#include <spiSlave.h>
+#include "spiSlave.h"
 
 #include <arduino.h>
 #include <avr/io.h>     // per Dale Wheat / Arduino Internals page 35.  Explicitly included to reference Arduion registers, even though Arduino automatically picks it up when not included
@@ -8,6 +8,12 @@
 //  how to handle ISR references from within the spiSlave class?
 //  generally followed this example https://atadiat.com/en/e-arduino-trick-share-interrupt-service-routines-between-libraries-application/
 //  -> except used an explicit default constructor https://www.geeksforgeeks.org/constructors-c/
+
+// create an spiSlave instance
+// Although the Arduino Mega can support 2 SPI masters,
+//    Only one Arduino Mega SPI peripheral can serve as a slave
+//    hence, no code external to spiSlave.h / spiSlave.cpp should create any spiSlave instances
+spiSlave spiSlavePort;
 
 // Constructor
 //  use a default constructor, invoked when an instance is declared (?)
@@ -176,7 +182,8 @@ unsigned char spiSlave::getLatestDataFromPi ()
 }
 
 // Purpose
-//  Assess arrival of another byte via SPI
+//  Interrupt handler
+//  Assesses arrival of each byte received via SPI
 // Algorithm
 //  Ignore it, Reset the transfer protocol state machine, or add the latest transferred byte to an 'being catured' buffer
 //  trigger on SPI received interrupts per this template
@@ -271,5 +278,5 @@ void spiSlave::spiISR()
 
 ISR (SPI_STC_vect)
 {
-    spiSlave::spiISR();
+    spiSlavePort.spiISR();
 }
