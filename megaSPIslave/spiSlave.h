@@ -57,7 +57,11 @@ class spiSlave
     private:
 
     // SPI service state machine variables
-    volatile unsigned char receiveBuffer[15]; // temporary buffer for bytes coming from the SPI master
+    volatile unsigned char receiveBuffer[2][15]; // temporary buffer for bytes coming from the SPI master
+                                            // double buffer allows setting next burst values even if a current burst is in progress
+    volatile unsigned char inProgressReceiveBufferSelect = 0;  // index into receiveBuffer for any current / in-progress SPI transfer. start with the 0th receiveBuffer                                                                
+    volatile unsigned char lastCompletedReceiveBufferSelect = 1;  // index to most recently captured receiveBuffer
+
     volatile unsigned char sendBuffer[2][15]; // temporary buffer for bytes to be sent to SPI master in the next burst
                                             // double buffer allows setting next burst values even if a current burst is in progress
     volatile unsigned char sendBufferSelect = 0;  // currently seleted sendBuffer. start with the 0th sendBuffer                                                                

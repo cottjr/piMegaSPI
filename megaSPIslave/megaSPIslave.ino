@@ -45,13 +45,8 @@ void setup (void)
 void loop ()
 {
 
-  if ( spiSlavePort.newSPIdataAvailable == 1 )
+  if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
-    // ToDo -> add logic to test return value from getLatestDataFromPi()
-    //  handle case of potential collision
-    //  or better yet, come up with a double buffer scheme to avoid the need
-    spiSlavePort.getLatestDataFromPi ();
-    spiSlavePort.newSPIdataAvailable = 0;  
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");
     Serial.print(spiSlavePort.commandFromPi);
     Serial.print(", ");
@@ -79,10 +74,8 @@ void loop ()
   Serial.println(spiSlavePort.errorCountSPIrx);
   delay(1000);    
 
-  if ( spiSlavePort.newSPIdataAvailable == 1 )
+  if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
-    spiSlavePort.getLatestDataFromPi ();
-    spiSlavePort.newSPIdataAvailable = 0;
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");  
     Serial.print(spiSlavePort.commandFromPi);
     Serial.print(", ");

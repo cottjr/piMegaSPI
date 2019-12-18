@@ -32,11 +32,12 @@ spiSlave::spiSlave()
   // queue some initial values to send to the Pi
   spiSlave::setDataForPi('A', 1, 2, 3, 4, 5);
 
-  // initialize the receive buffer     
+  // initialize the receive buffer with easily recognizeable default values
   int i; 
   for (i = 0; i <= 14; i++) 
   {
-    receiveBuffer[i] = i;
+    receiveBuffer[0][i] = i;
+    receiveBuffer[1][i] = i;
   }   
 
 }
@@ -138,47 +139,53 @@ unsigned char spiSlave::setDataForPi (char command, signed char TurnVelocity, si
 // Purpose
 //  retrieve the latest data received from the SPI master on the most recent SPI byte exchange
 // Output
-//  returns 1 if request to retreive was accepted, 0 if it was rejected due to collision with in progress transfer
+//  returns 1 if data retreived was fresh, 0 if data has already been retrieved with a call to getLatestDataFromPi()
 unsigned char spiSlave::getLatestDataFromPi ()
 {
   // synchronize processes - avoid corruption from writing/reading at the same time
   noInterrupts();
-  if ( SPIxferInProgress == 0)
+
+  fromSPIBufferByte1.asUnsignedChar = receiveBuffer[lastCompletedReceiveBufferSelect][0];
+  fromSPIBufferByte2.asUnsignedChar = receiveBuffer[lastCompletedReceiveBufferSelect][1];
+  fromSPIBufferByte3.asUnsignedChar = receiveBuffer[lastCompletedReceiveBufferSelect][2];
+
+  int i; 
+  // fetch bytes 4 thru 7 (param1)     
+  for (i = 3; i <= 6; i++) 
   {
-    fromSPIBufferByte1.asUnsignedChar = receiveBuffer[0];
-    fromSPIBufferByte2.asUnsignedChar = receiveBuffer[1];
-    fromSPIBufferByte3.asUnsignedChar = receiveBuffer[2];
+    fromSPIBufferLong1.asByte[i-3] = receiveBuffer[lastCompletedReceiveBufferSelect][i];
+  }   
 
-    int i; 
-    // fetch bytes 4 thru 7 (param1)     
-    for (i = 3; i <= 6; i++) 
-    {
-      fromSPIBufferLong1.asByte[i-3] = receiveBuffer[i];
-    }   
+  // fetch bytes 8 thru 11 (param2)     
+  for (i = 7; i <= 10; i++) 
+  {
+    fromSPIBufferLong2.asByte[i-7] = receiveBuffer[lastCompletedReceiveBufferSelect][i];
+  }   
 
-    // fetch bytes 8 thru 11 (param2)     
-    for (i = 7; i <= 10; i++) 
-    {
-      fromSPIBufferLong2.asByte[i-7] = receiveBuffer[i];
-    }   
+  // fetch bytes 12 thru 15 (param3)     
+  for (i = 11; i <= 14; i++) 
+  {
+    fromSPIBufferLong3.asByte[i-11] = receiveBuffer[lastCompletedReceiveBufferSelect][i];
+  }      
 
-    // fetch bytes 12 thru 15 (param3)     
-    for (i = 11; i <= 14; i++) 
-    {
-      fromSPIBufferLong3.asByte[i-11] = receiveBuffer[i];
-    }      
+  commandFromPi = fromSPIBufferByte1.asChar;
+  TurnVelocityFromPi = fromSPIBufferByte2.asSignedChar;
+  ThrottleFromPi = fromSPIBufferByte3.asSignedChar;
+  param1FromPi = fromSPIBufferLong1.asLong;
+  param2FromPi = fromSPIBufferLong2.asLong;
+  param3FromPi = fromSPIBufferLong3.asLong;
 
-    commandFromPi = fromSPIBufferByte1.asChar;
-    TurnVelocityFromPi = fromSPIBufferByte2.asSignedChar;
-    ThrottleFromPi = fromSPIBufferByte3.asSignedChar;
-    param1FromPi = fromSPIBufferLong1.asLong;
-    param2FromPi = fromSPIBufferLong2.asLong;
-    param3FromPi = fromSPIBufferLong3.asLong;
+  if (newSPIdataAvailable == 1)
+  {
+    newSPIdataAvailable == 0;   // indicate that this new SPI data has just been consumed
     interrupts();
-    return 1;   // indicate transfer request accepted
+    return 1;   // indicate that the data just returned has NOT been previously seen
   }
-  interrupts();
-  return 0; // indicate transfer request rejected
+  else
+  {
+    interrupts();
+    return 0; // indicate that the data just returned HAS been previously seen
+  }
 }
 
 // Purpose
@@ -210,7 +217,7 @@ void spiSlave::spiISR()
     // reset the SPI listener state machine if the prior transfer has clearly taken too long or was prematurely cancelled
     // ie. this will force the listener to wait for another initial 'start new transfer' SPIxferIndex byte
     // choose threshold based on empirical timing observation by oscilloscope plus a little margin
-    if ( (millis() - SPIwdPriorMillis) > 5)
+    if ( (millis() - SPIwdPriorMillis) > 30)
     {
       SPIxferIndex = -2;
       SPIxferInProgress = 0;   // flag to external programs that the receiveBuffer 'can be trusted'
@@ -249,7 +256,7 @@ void spiSlave::spiISR()
       SPDR = sendBuffer[sendBufferSelect][SPIxferIndex];   // queue the first byte to transfer from Mega slave to Pi master
       break;
     case 14:   // ie. capture the 15th ie. final payload byte & queue and 'end of burst' acknowledge byte
-      receiveBuffer[SPIxferIndex] = SPDR;
+      receiveBuffer[inProgressReceiveBufferSelect][SPIxferIndex] = SPDR;
       SPIxferIndex++; 
       SPDR = 'Z';   // queue an 'end of burst' handshake byte to be sent on the next transfer
                     // => give confidence (albeit not certainty) that the payload bytes transferred between 'a' and 'z' can be trusted
@@ -257,8 +264,21 @@ void spiSlave::spiISR()
     case 15:   // ie. verify that just exchanged what should be a final handshaking byte - 'Z' for 'z'. Reset the state machine.
       if (SPDR == 'z')    // verify that the protocol burst state machines were in sync for both SPI master and slave 
       {
+        // The receive buffer should now contain an aligned set of bytes
+        // Flip the last completed and in progress receive buffer select indices
+        if (inProgressReceiveBufferSelect == 0)
+        {
+          inProgressReceiveBufferSelect == 1;
+          lastCompletedReceiveBufferSelect = 0;
+        }
+        else
+        {
+          inProgressReceiveBufferSelect == 0;
+          lastCompletedReceiveBufferSelect = 1;
+        }
+
         newSPIdataAvailable = 1;  // as best we can tell, the payload bytes between 'a' and 'z' can be trusted
-                                  // flag to external functions that new data is now available
+                                  // flag to external functions that new data is now available                   
       } else
       {
         errorCountSPIrx++;      // count as an error - we got this far, should have received a finaly handshake byte
@@ -269,7 +289,7 @@ void spiSlave::spiISR()
       SPIxferInProgress = 0;  // flag to external functions that the receiveBuffer should be trustable.
       break;
     default:   // otherwise, receive index 0..13 (ie. payload bytes 1..14) & advance SPIxferIndex to next state
-      receiveBuffer[SPIxferIndex] = SPDR;
+      receiveBuffer[inProgressReceiveBufferSelect][SPIxferIndex] = SPDR;
       SPIxferIndex++; 
       SPDR = sendBuffer[sendBufferSelect][SPIxferIndex];    // queue the next byte to be transferred
     }
