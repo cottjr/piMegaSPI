@@ -188,6 +188,21 @@ unsigned char spiSlave::getLatestDataFromPi ()
   }
 }
 
+
+// Returns maximum SPI observed burst duration in ms, since last cleared
+unsigned char spiSlave::getMaxBurstDuration()
+{
+  return maxBurstDuration;
+}
+
+
+// Clears an internal register that tracks the maximum oberved SPI burst duration
+void spiSlave::clearMaxBurstDuration()
+{
+  maxBurstDuration = 0;
+}
+
+
 // Purpose
 //  Interrupt handler
 //  Assesses arrival of each byte received via SPI
@@ -211,6 +226,8 @@ Algorithm & protocol derived from polled example code spiHandler()
 ****************************************************************/
 void spiSlave::spiISR()
 {
+    unsigned long currentBurstMillis;
+    
     // write to digTP28, to facilitate timing measurements via oscilloscope
     digitalWrite(digTP28, HIGH);
 
@@ -287,6 +304,11 @@ void spiSlave::spiISR()
       SPDR = 0;               // queue a 'defined value' null byte for the next SPI transfer, whenever that may be
       SPIxferIndex = -2;      // reset the state machine
       SPIxferInProgress = 0;  // flag to external functions that the receiveBuffer should be trustable.
+      currentBurstMillis = millis() - SPIwdPriorMillis;
+      if ( currentBurstMillis > maxBurstDuration)
+      {
+        maxBurstDuration = (unsigned char) currentBurstMillis;
+      }
       break;
     default:   // otherwise, receive index 0..13 (ie. payload bytes 1..14) & advance SPIxferIndex to next state
       receiveBuffer[inProgressReceiveBufferSelect][SPIxferIndex] = SPDR;

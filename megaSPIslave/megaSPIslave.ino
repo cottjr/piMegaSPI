@@ -65,13 +65,15 @@ void loop ()
     Serial.println("-> no new data as expected. Either the most recent transfer failed,       ???");
     Serial.println("   or we happened to check when there was no new data...");
   }
-  Serial.println("queuing for PI: p, -50, +13, 248, 399, 425");
-  if ( spiSlavePort.setDataForPi('p', -50, +13, 248, 399, 425) == 1)
+  Serial.println("queuing for PI: p, Max burst duration, +13, 248, 399, 425");
+  if ( spiSlavePort.setDataForPi('p', spiSlavePort.getMaxBurstDuration(), +13, 248, 399, 425) == 1)
   {
     Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
   }
   Serial.print(" xfer error count ");
   Serial.println(spiSlavePort.errorCountSPIrx);
+  Serial.print(" max SPI burst duration (ms) ");
+  Serial.println(spiSlavePort.getMaxBurstDuration());
   delay(1000);    
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
@@ -95,14 +97,16 @@ void loop ()
     Serial.println("-> no new data as expected. Either the most recent transfer failed,,       ???");
     Serial.println("   or we happened to check when there was no new data...");
   }
-  Serial.println("queuing for PI: q, 33, -87, 13987, 22459, 609942");
-  if (spiSlavePort.setDataForPi('q', 33, -87, 13987, 22459, 609942) == 1)
+  Serial.println("queuing for PI: q, Max burst duration, -87, 13987, 22459, 609942");
+  if (spiSlavePort.setDataForPi('q', spiSlavePort.getMaxBurstDuration(), -87, 13987, 22459, 609942) == 1)
   {
     Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
   }
   Serial.println(); 
   Serial.print(" xfer error count ");
   Serial.println(spiSlavePort.errorCountSPIrx);
+  Serial.print(" max SPI burst duration (ms) ");
+  Serial.println(spiSlavePort.getMaxBurstDuration());
   delay(1000);    
 
 }

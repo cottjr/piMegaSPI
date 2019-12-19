@@ -45,6 +45,13 @@ class spiSlave
     long param2FromPi = 0;
     long param3FromPi = 0;
 
+
+    // Returns maximum SPI observed burst duration in ms, since last cleared
+    unsigned char getMaxBurstDuration();
+
+    // Clears an internal register that tracks the maximum oberved SPI burst duration
+    void clearMaxBurstDuration();
+
     // Purpose
     //  Interrupt handler
     //  Assesses arrival of each byte received via SPI
@@ -93,6 +100,9 @@ class spiSlave
 
     union longUnion toSPIBufferLong1, toSPIBufferLong2, toSPIBufferLong3 ;
     union longUnion fromSPIBufferLong1, fromSPIBufferLong2, fromSPIBufferLong3 ;
+ 
+    // Internal register that tracks the maximum oberved SPI burst duration
+    volatile unsigned char maxBurstDuration = 0;
 
 };
 
