@@ -72,8 +72,10 @@ void loop ()
   }
   Serial.print(" xfer error count ");
   Serial.println(spiSlavePort.errorCountSPIrx);
-  Serial.print(" max SPI burst duration (ms) ");
-  Serial.println(spiSlavePort.getMaxBurstDuration());
+  Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
+  Serial.print(spiSlavePort.getMaxBurstDuration());
+  Serial.print(", ");
+  Serial.println(spiSlavePort.getMaxDelayBetweenBursts());
   delay(1000);    
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
@@ -105,8 +107,10 @@ void loop ()
   Serial.println(); 
   Serial.print(" xfer error count ");
   Serial.println(spiSlavePort.errorCountSPIrx);
-  Serial.print(" max SPI burst duration (ms) ");
-  Serial.println(spiSlavePort.getMaxBurstDuration());
+  Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
+  Serial.print(spiSlavePort.getMaxBurstDuration());
+  Serial.print(", ");
+  Serial.println(spiSlavePort.getMaxDelayBetweenBursts());
   delay(1000);    
 
 }

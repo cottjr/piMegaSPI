@@ -189,7 +189,8 @@ unsigned char spiSlave::getLatestDataFromPi ()
 }
 
 
-// Returns maximum SPI observed burst duration in ms, since last cleared
+// Returns maximum SPI observed burst duration in ms, since last cleared. 
+// This should never be higher than the value of maxAllowedSPIburstDuration.
 unsigned char spiSlave::getMaxBurstDuration()
 {
   return maxBurstDuration;
@@ -200,6 +201,21 @@ unsigned char spiSlave::getMaxBurstDuration()
 void spiSlave::clearMaxBurstDuration()
 {
   maxBurstDuration = 0;
+}
+
+
+// Returns maximum observed delay between SPI bursts in ms, since last cleared. 
+// This can easily and often be higher than the value of maxAllowedSPIburstDuration, depending primarily how often the SPI Master chooses to initiate transfers.
+unsigned long spiSlave::getMaxDelayBetweenBursts()
+{
+  return maxDelayBetweenBursts;
+}
+
+
+// Clears an internal register that tracks the maximum observed delay between SPI bursts.
+void spiSlave::clearMaxDelayBetweenBursts()
+{
+  maxDelayBetweenBursts = 0;
 }
 
 
@@ -227,14 +243,23 @@ Algorithm & protocol derived from polled example code spiHandler()
 void spiSlave::spiISR()
 {
     unsigned long currentBurstMillis;
-    
+    unsigned long currentDelayBetweenBurstsMillis = 0;
+
     // write to digTP28, to facilitate timing measurements via oscilloscope
     digitalWrite(digTP28, HIGH);
+
+    currentDelayBetweenBurstsMillis = (millis() - SPIwdPriorMillis);
+
+    // update the maxDelayBetweenBursts register if this is a new record high delay between bursts
+    if ( currentDelayBetweenBurstsMillis > maxDelayBetweenBursts)
+    {
+      maxDelayBetweenBursts = currentDelayBetweenBurstsMillis;
+    }
 
     // reset the SPI listener state machine if the prior transfer has clearly taken too long or was prematurely cancelled
     // ie. this will force the listener to wait for another initial 'start new transfer' SPIxferIndex byte
     // choose threshold based on empirical timing observation by oscilloscope plus a little margin
-    if ( (millis() - SPIwdPriorMillis) > 30)
+    if ( currentDelayBetweenBurstsMillis > maxAllowedSPIburstDuration)
     {
       SPIxferIndex = -2;
       SPIxferInProgress = 0;   // flag to external programs that the receiveBuffer 'can be trusted'

@@ -46,11 +46,20 @@ class spiSlave
     long param3FromPi = 0;
 
 
-    // Returns maximum SPI observed burst duration in ms, since last cleared
+    // Returns maximum SPI observed burst duration in ms, since last cleared. 
+    // This should never be higher than the value of maxAllowedSPIburstDuration.
     unsigned char getMaxBurstDuration();
 
     // Clears an internal register that tracks the maximum oberved SPI burst duration
     void clearMaxBurstDuration();
+
+    // Returns maximum observed delay between SPI bursts in ms, since last cleared. 
+    // This can easily and often be higher than the value of maxAllowedSPIburstDuration, depending primarily how often the SPI Master chooses to initiate transfers.
+    unsigned long getMaxDelayBetweenBursts();
+
+    // Clears an internal register that tracks the maximum observed delay between SPI bursts.
+    void clearMaxDelayBetweenBursts();
+
 
     // Purpose
     //  Interrupt handler
@@ -62,6 +71,9 @@ class spiSlave
 
 
     private:
+
+    // time threshold in ms to declare a failed burst transfer attempt
+    #define maxAllowedSPIburstDuration 30  // assume that something is wrong if a burst of bytes is started but not completed within this time
 
     // SPI service state machine variables
     volatile unsigned char receiveBuffer[2][15]; // temporary buffer for bytes coming from the SPI master
@@ -103,6 +115,9 @@ class spiSlave
  
     // Internal register that tracks the maximum oberved SPI burst duration
     volatile unsigned char maxBurstDuration = 0;
+
+    // Internal register that tracks the maximum oberved delay between SPI bursts.
+    volatile unsigned long maxDelayBetweenBursts = 0;
 
 };
 
