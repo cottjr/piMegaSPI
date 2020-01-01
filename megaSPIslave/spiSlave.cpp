@@ -189,6 +189,38 @@ unsigned char spiSlave::getLatestDataFromPi ()
 }
 
 
+// public methods to retrieve the latest values received from the Pi SPI master
+char spiSlave::getCommandFromPi()
+{
+  return commandFromPi;
+};
+
+signed char spiSlave::getTurnVelocityFromPi()
+{
+  return TurnVelocityFromPi;
+};
+
+signed char spiSlave::getThrottleFromPi()
+{
+  return ThrottleFromPi;
+};
+
+long spiSlave::getParam1FromPi()
+{
+  return param1FromPi;
+};
+
+long spiSlave::getParam2FromPi()
+{
+  return param2FromPi;
+};
+
+long spiSlave::getParam3FromPi()
+{
+  return param3FromPi;
+};
+
+
 // Returns maximum SPI observed burst duration in ms, since last cleared. 
 // This should never be higher than the value of maxAllowedSPIburstDuration.
 unsigned char spiSlave::getMaxBurstDuration()

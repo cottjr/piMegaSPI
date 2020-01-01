@@ -35,16 +35,13 @@ class spiSlave
 
     volatile unsigned int errorCountSPIrx = 0;  // let's track apparent xfer failures
 
-    // placeholder variables to provide interface between the SPI service and the functions using the SPI service
-    // ToDo -> eventually refactor these for more clean & abstracted interface to SPI service
-    //  e.g. -> accept pointers in the constuctor initialize() and bind to working values in the spiSlave class
-    char commandFromPi = 0;
-    signed char TurnVelocityFromPi = 0;
-    signed char ThrottleFromPi = 0;
-    long param1FromPi = 0;
-    long param2FromPi = 0;
-    long param3FromPi = 0;
-
+    // public methods to retrieve the latest values received from the Pi SPI master
+    char getCommandFromPi();
+    signed char getTurnVelocityFromPi();
+    signed char getThrottleFromPi();
+    long getParam1FromPi();
+    long getParam2FromPi();
+    long getParam3FromPi();
 
     // Returns maximum SPI observed burst duration in ms, since last cleared. 
     // This should never be higher than the value of maxAllowedSPIburstDuration.
@@ -112,7 +109,17 @@ class spiSlave
 
     union longUnion toSPIBufferLong1, toSPIBufferLong2, toSPIBufferLong3 ;
     union longUnion fromSPIBufferLong1, fromSPIBufferLong2, fromSPIBufferLong3 ;
- 
+
+    // placeholder variables to provide interface between the SPI service and the functions using the SPI service
+    // ToDo -> eventually refactor these for more clean & abstracted interface to SPI service
+    //  e.g. -> accept pointers in the constuctor initialize() and bind to working values in the spiSlave class
+    char commandFromPi = 0;
+    signed char TurnVelocityFromPi = 0;
+    signed char ThrottleFromPi = 0;
+    long param1FromPi = 0;
+    long param2FromPi = 0;
+    long param3FromPi = 0;
+
     // Internal register that tracks the maximum oberved SPI burst duration
     volatile unsigned char maxBurstDuration = 0;
 

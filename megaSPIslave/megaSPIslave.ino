@@ -48,23 +48,25 @@ void loop ()
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");
-    Serial.print(spiSlavePort.commandFromPi);
+    Serial.print(spiSlavePort.getCommandFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.TurnVelocityFromPi);
+    Serial.print(spiSlavePort.getTurnVelocityFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.ThrottleFromPi);
+    Serial.print(spiSlavePort.getThrottleFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.param1FromPi);
+    Serial.print(spiSlavePort.getParam1FromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.param2FromPi);
+    Serial.print(spiSlavePort.getParam2FromPi());
     Serial.print(", ");
-    Serial.println(spiSlavePort.param3FromPi);
+    Serial.println(spiSlavePort.getParam3FromPi());
   }
   else
   {
     Serial.println("-> no new data as expected. Either the most recent transfer failed,       ???");
     Serial.println("   or we happened to check when there was no new data...");
   }
+
+  Serial.println();
   Serial.println("queuing for PI: p, Max burst duration, +13, 248, 399, 425");
   if ( spiSlavePort.setDataForPi('p', spiSlavePort.getMaxBurstDuration(), +13, 248, 399, 425) == 1)
   {
@@ -77,30 +79,32 @@ void loop ()
   Serial.print(", ");
   Serial.println(spiSlavePort.getMaxDelayBetweenBursts());
   delay(1000);    
+  Serial.println();
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
     Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");  
-    Serial.print(spiSlavePort.commandFromPi);
+    Serial.print(spiSlavePort.getCommandFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.TurnVelocityFromPi);
+    Serial.print(spiSlavePort.getTurnVelocityFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.ThrottleFromPi);
+    Serial.print(spiSlavePort.getThrottleFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.param1FromPi);
+    Serial.print(spiSlavePort.getParam1FromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.param2FromPi);
+    Serial.print(spiSlavePort.getParam2FromPi());
     Serial.print(", ");
-    Serial.println(spiSlavePort.param3FromPi);
-
+    Serial.println(spiSlavePort.getParam3FromPi());
   }
     else
   {
     Serial.println("-> no new data as expected. Either the most recent transfer failed,,       ???");
     Serial.println("   or we happened to check when there was no new data...");
   }
-  Serial.println("queuing for PI: q, Max burst duration, -87, 13987, 22459, 609942");
-  if (spiSlavePort.setDataForPi('q', spiSlavePort.getMaxBurstDuration(), -87, 13987, 22459, 609942) == 1)
+
+  Serial.println();
+  Serial.println("queuing for PI: q, Max burst duration, -87, 13987, 22459, spiSlavePort.getMaxDelayBetweenBursts()");
+  if (spiSlavePort.setDataForPi('q', spiSlavePort.getMaxBurstDuration(), -87, 13987, 22459, (long) spiSlavePort.getMaxDelayBetweenBursts()) == 1) //note: loss of fidelty from casting unsigned long to long...
   {
     Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
   }
@@ -112,5 +116,5 @@ void loop ()
   Serial.print(", ");
   Serial.println(spiSlavePort.getMaxDelayBetweenBursts());
   delay(1000);    
-
+  Serial.println();
 }
