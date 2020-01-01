@@ -106,7 +106,7 @@ int main (void)
       // cout << "B3: " << (int) (signed char) receivedByte3 << endl;      
       // cout << "L1: " << receivedLong1 << endl;
       // cout << "L2: " << receivedLong2 << endl;
-      // cout << "L3: " << receivedLong3 << endl;
+      cout << "L3: " << receivedLong3 << endl;
       cout << "Running SPI burst rx err count: " << errorCountSPIrx << endl;
       cout << endl;
     } else
