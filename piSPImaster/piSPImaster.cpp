@@ -67,6 +67,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
 // Allows working on the basic protocol and structure
 int main (void)
 {
+  int xferSuccess = 0;
 
   receivedByte1 = 0;
   receivedByte2 = 0;
@@ -92,11 +93,44 @@ int main (void)
   unsigned int speed = 1000000;
   ioctl (fdSPI, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
 
-  printf ("Raspberry Pi SPI port initialization complete.\n");
+  printf ("Raspberry Pi SPI master port initialization complete.\n");
   
+  // This next block demonstrates a pattern to send a command to the Mega SPI slave,
+  //   and wait for acknowledgement that it has been completed by the Mega SPI slave
+  printf ("Queuing request for Mega SPI slave port to initialize itself.");
+  bool megaSPIportInitInProgress = true;
+  while (megaSPIportInitInProgress)
+  {
+    xferSuccess = 0;
+    xferSuccess = doSPItransfer('R', 0, 0, 0, 0, 0);  // send a 'reset' command to the Mega SPI Slave
+    if (xferSuccess == 1)
+    {
+      cout << "SPI Transfer successful." << endl;
+      if ((char) receivedByte1 == '!')
+      {
+        printf ("Arduino Mega SPI slave port initialization acknowledged.\n");
+        megaSPIportInitInProgress = false;
+      }
+    } else
+    {
+      cout << "Transfer failed.";
+      if (xferSuccess == 0)
+      {
+        cout << "  Transfer request initiated but no acknowledge received." << endl;
+      }
+      if (xferSuccess == 2)
+      {
+        cout << "  Transfer burst started as expected, but then SPI slave appears to have gotten out of sync during the burst." << endl;
+      }
+      cout << endl;
+    }
+    delay(4);
+  }
+
+  // This block demonstrates a pattern to trade data with the Mega SPI slave and determine whether there was some issue with the transfer
   while (1)
   {
-    int xferSuccess = 0;
+    xferSuccess = 0;
     xferSuccess = doSPItransfer('a', 0, 50, 25, 300, 549);
     if (xferSuccess == 1)
     {
