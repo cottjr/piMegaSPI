@@ -67,19 +67,28 @@ void loop ()
   }
 
   Serial.println();
-  Serial.println("queuing for PI: p, Max burst duration, +13, 248, 399, 425");
-  if ( spiSlavePort.setDataForPi('p', spiSlavePort.getMaxBurstDuration(), +13, 248, 399, 425) == 1)
+  spiSlavePort.handleCommandsFromPi();
+  if (spiSlavePort.getNextSPIxferToPiReserved())
   {
-    Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
+    Serial.println("Started to queue for Pi, but did not since getNextSPIxferToPiReserved() was true.");
   }
-  Serial.print(" xfer error count ");
-  Serial.println(spiSlavePort.errorCountSPIrx);
-  Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
-  Serial.print(spiSlavePort.getMaxBurstDuration());
-  Serial.print(", ");
-  Serial.println(spiSlavePort.getMaxDelayBetweenBursts());
+  else
+  {
+    Serial.println("queuing for PI: p, Max burst duration, +13, 248, 399, 425");
+    if ( spiSlavePort.setDataForPi('p', spiSlavePort.getMaxBurstDuration(), +13, 248, 399, 425) == 1)
+    {
+      Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
+    }
+    Serial.print(" xfer error count ");
+    Serial.println(spiSlavePort.errorCountSPIrx);
+    Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
+    Serial.print(spiSlavePort.getMaxBurstDuration());
+    Serial.print(", ");
+    Serial.println(spiSlavePort.getMaxDelayBetweenBursts());    
+  }
   delay(1000);    
   Serial.println();
+
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
@@ -102,19 +111,28 @@ void loop ()
     Serial.println("   or we happened to check when there was no new data...");
   }
 
+
   Serial.println();
-  Serial.println("queuing for PI: q, Max burst duration, -87, 13987, 22459, spiSlavePort.getMaxDelayBetweenBursts()");
-  if (spiSlavePort.setDataForPi('q', spiSlavePort.getMaxBurstDuration(), -87, 13987, 22459, (long) spiSlavePort.getMaxDelayBetweenBursts()) == 1) //note: loss of fidelty from casting unsigned long to long...
+  spiSlavePort.handleCommandsFromPi();
+  if (spiSlavePort.getNextSPIxferToPiReserved())
   {
-    Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
+    Serial.println("Started to queue for Pi, but did not since getNextSPIxferToPiReserved() was true.");
   }
-  Serial.println(); 
-  Serial.print(" xfer error count ");
-  Serial.println(spiSlavePort.errorCountSPIrx);
-  Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
-  Serial.print(spiSlavePort.getMaxBurstDuration());
-  Serial.print(", ");
-  Serial.println(spiSlavePort.getMaxDelayBetweenBursts());
+  else
+  {
+    Serial.println("queuing for PI: q, Max burst duration, -87, 13987, 22459, spiSlavePort.getMaxDelayBetweenBursts()");
+    if (spiSlavePort.setDataForPi('q', spiSlavePort.getMaxBurstDuration(), -87, 13987, 22459, (long) spiSlavePort.getMaxDelayBetweenBursts()) == 1) //note: loss of fidelty from casting unsigned long to long...
+    {
+      Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
+    }
+    Serial.println(); 
+    Serial.print(" xfer error count ");
+    Serial.println(spiSlavePort.errorCountSPIrx);
+    Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
+    Serial.print(spiSlavePort.getMaxBurstDuration());
+    Serial.print(", ");
+    Serial.println(spiSlavePort.getMaxDelayBetweenBursts());    
+  }
   delay(1000);    
   Serial.println();
 }

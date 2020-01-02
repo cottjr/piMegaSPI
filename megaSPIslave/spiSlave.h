@@ -43,6 +43,7 @@ class spiSlave
     long getParam2FromPi();
     long getParam3FromPi();
 
+
     // Returns maximum SPI observed burst duration in ms, since last cleared. 
     // This should never be higher than the value of maxAllowedSPIburstDuration.
     unsigned char getMaxBurstDuration();
@@ -57,6 +58,15 @@ class spiSlave
     // Clears an internal register that tracks the maximum observed delay between SPI bursts.
     void clearMaxDelayBetweenBursts();
 
+
+    // Purpose
+    //  this method allows using programs to check for and act on any commands received from the Pi SPI Master.
+    // => see implementation code for important background
+    void handleCommandsFromPi();
+
+    // Return status flag indicating whether the next payload for Pi SPI Master has already been reserved and must go through as-is
+    bool getNextSPIxferToPiReserved();  
+    
 
     // Purpose
     //  Interrupt handler
@@ -119,6 +129,9 @@ class spiSlave
     long param1FromPi = 0;
     long param2FromPi = 0;
     long param3FromPi = 0;
+
+    // flag to indicate whether the next SPI transfer has already been reserved to send some payload to the Pi SPI master, and must go through as-is
+    bool nextSPIxferToPiReserved = false;
 
     // Internal register that tracks the maximum oberved SPI burst duration
     volatile unsigned char maxBurstDuration = 0;
