@@ -162,7 +162,7 @@ int main (void)
 // But I noticed that PI SPI master errors increase when open this VS Code SSH connection
 // -> and wonder if the issue is partly related to Pi load & network connections & console log activity
 // => plus also, during this test, I was cycling network connectivity for teleCalm devices, attaching & disconnecting LTE520 for programming...
-    delay(4);
+    delay(20);
   }
 }
 
@@ -294,7 +294,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
 
     // this is the first'header' byte in a burst handshake
     spiTxRx('s');     
-    usleep (50);
+    usleep (1500);
 
     // this is the second 'header' byte in a burst handshake
     // send a dummy value to fetch an acknowledge byte to determine if the slave is present in a state to proceed
@@ -303,7 +303,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
     {
       ack = true;
     }
-    usleep (50);
+    usleep (1500);
 
     if (wdCounter > 17)   
     {
@@ -320,36 +320,36 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
 
   // send Byte1 (command) and fetch Byte1 (command) from slave
   fromSPIBufferByte1.asUnsignedChar = spiTxRx(toSPIBufferByte1.asUnsignedChar);
-  usleep (50);
+  usleep (1500);
 
   // send Byte2 (TurnVelocity) and fetch Byte2 (TurnVelocity) from slave
   fromSPIBufferByte2.asUnsignedChar = spiTxRx(toSPIBufferByte2.asUnsignedChar);
-  usleep (50);
+  usleep (1500);
 
   // send Byte3 (Throttle) and fetch Byte3 (Throttle) from slave
   fromSPIBufferByte3.asUnsignedChar = spiTxRx(toSPIBufferByte3.asUnsignedChar);
-  usleep (50);
+  usleep (1500);
 
   int i=0; 
   // send bytes 4 thru 7 (param1) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong1.asByte[i] = spiTxRx(toSPIBufferLong1.asByte[i]);
-    usleep (50);
+    usleep (1500);
   }   
 
   // send bytes 8 thru 11 (param2) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong2.asByte[i] = spiTxRx(toSPIBufferLong2.asByte[i]);
-    usleep (50);
+    usleep (1500);
   }   
 
   // send bytes 12 thru 15 (param3) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong3.asByte[i] = spiTxRx(toSPIBufferLong3.asByte[i]);
-    usleep (50);
+    usleep (1500);
   }   
 
   // this is the last 'handshaking' byte in a burst
