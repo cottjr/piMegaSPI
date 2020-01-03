@@ -79,15 +79,16 @@ void loop ()
     {
       Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
     }
-    Serial.print(" xfer error count, num bursts rejected too long ");
-    Serial.print(spiSlavePort.getErrorCountSPIrx());
-    Serial.print(", ");
-    Serial.println(spiSlavePort.getNumBurstsRejectedTooLong());
-    Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
-    Serial.print(spiSlavePort.getMaxBurstDuration());
-    Serial.print(", ");
-    Serial.println(spiSlavePort.getMaxDelayBetweenBursts());    
   }
+  Serial.println(); 
+  Serial.print(" xfer error count, num bursts rejected too long ");
+  Serial.print(spiSlavePort.getErrorCountSPIrx());
+  Serial.print(", ");
+  Serial.println(spiSlavePort.getNumBurstsRejectedTooLong());
+  Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
+  Serial.print(spiSlavePort.getMaxBurstDuration());
+  Serial.print(", ");
+  Serial.println(spiSlavePort.getMaxDelayBetweenBursts());    
   delay(1000);    
   Serial.println();
 
@@ -127,16 +128,16 @@ void loop ()
     {
       Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
     }
-    Serial.println(); 
-    Serial.print(" xfer error count, num bursts rejected too long ");
-    Serial.print(spiSlavePort.getErrorCountSPIrx());
-    Serial.print(", ");
-    Serial.println(spiSlavePort.getNumBurstsRejectedTooLong());
-    Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
-    Serial.print(spiSlavePort.getMaxBurstDuration());
-    Serial.print(", ");
-    Serial.println(spiSlavePort.getMaxDelayBetweenBursts());    
   }
+  Serial.println(); 
+  Serial.print(" xfer error count, num bursts rejected too long ");
+  Serial.print(spiSlavePort.getErrorCountSPIrx());
+  Serial.print(", ");
+  Serial.println(spiSlavePort.getNumBurstsRejectedTooLong());
+  Serial.print(" max SPI burst duration (ms), max delay between SPI bursts (ms) ");
+  Serial.print(spiSlavePort.getMaxBurstDuration());
+  Serial.print(", ");
+  Serial.println(spiSlavePort.getMaxDelayBetweenBursts());    
   delay(1000);    
   Serial.println();
 }
