@@ -59,7 +59,7 @@ unsigned int errorCountSPIrx = 0;
 Declare Functions to allow forward references
 ***********************************************************/
 int spiTxRx(unsigned char txDat);
-int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, long param1, long param2, long param3 );
+int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, signed char SidewaysThrottle, long param1, long param2, long param3 );
 
 
 // Simple demonstration / test loop
@@ -131,15 +131,16 @@ int main (void)
   while (1)
   {
     xferSuccess = 0;
-    xferSuccess = doSPItransfer('a', 0, 50, 25, 300, 549);
+    xferSuccess = doSPItransfer('a', -7, 50, -13, 25, 300, 549);
     if (xferSuccess == 1)
     {
       cout << "Transfer successful." << endl;
       cout << "B1: " << (char) receivedByte1 << endl;
       cout << "B2: " << (int) (signed char) receivedByte2 << endl;
-      // cout << "B3: " << (int) (signed char) receivedByte3 << endl;      
-      // cout << "L1: " << receivedLong1 << endl;
-      // cout << "L2: " << receivedLong2 << endl;
+      cout << "B3: " << (int) (signed char) receivedByte3 << endl;      
+      cout << "B4: " << (int) (signed char) receivedByte4 << endl;      
+      cout << "L1: " << receivedLong1 << endl;
+      cout << "L2: " << receivedLong2 << endl;
       cout << "L3: " << receivedLong3 << endl;
       cout << "Running SPI burst rx err count: " << errorCountSPIrx << endl;
       cout << endl;
@@ -201,7 +202,7 @@ int spiTxRx(unsigned char txDat)
 // Purpose:  
 //    send commands and data from Pi master to Arduino Mega slave
 //    receive data from Arduino Mega slave
-//    MVP - initial value is simply to transfer TurnVelocity and ForwardThrottle commands between Pi master and Arduino slave
+//    MVP - initial value is simply to transfer TurnVelocity, ForwardThrottle and SidewaysThrottle commands between Pi master and Arduino slave
 //    Is designed to provide a simple protocol that enables transferring lots more information later, 
 //      by invoking these communication functions but without having to revist the protocol...
 // Inputs
@@ -209,6 +210,7 @@ int spiTxRx(unsigned char txDat)
 //        for example, requesting some specific values, or by defining how to interpret following values
 //    TurnVelocity -> intended to provide a 'turn velocity' setpoint value from the Pi master to the Arduino slave
 //    ForwardThrottle -> intended to provide a 'ForwardThrottle' setpoint value from the Pi master to the Arduino slave
+//    SidewaysThrottle -> intended to provide a 'SidewaysThrottle' setpoint value from the Pi master to the Arduino slave
 //    param1, param2, param3 -> placeholders  for future development to allow transferring more info from the Pi master to the Arduino slave
 //    external variables intended to receive values from SPI slave
 // Algorithm
@@ -226,7 +228,11 @@ int spiTxRx(unsigned char txDat)
 //    3rd byte / received in exchange for 'ForwardThrottle' 
 //      -> intended to allow the Arduino slave to inform the Pi master of current commanded values
 //      -> e.g. for the case where robot is being manually driven around by a controller connected to Arduino,
-//      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar
+//      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar (platform with traditional wheels e.g. R/C Car or Differential Drive wheels)
+//    4th byte / received in exchange for 'SidewaysThrottle' 
+//      -> intended to allow the Arduino slave to inform the Pi master of current commanded values
+//      -> e.g. for the case where robot is being manually driven around by a controller connected to Arduino,
+//      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar (platform with Mecanum wheels, Omni wheels or Hovercraft which also sidways motion)
 //    last 12 bytes / received in exchange for 'param1', 'param2' and 'param3
 //      -> placeholder bytes for future development. No specific meaning defined.
 // Expected end of transfer marker returned via SPI
@@ -238,7 +244,7 @@ int spiTxRx(unsigned char txDat)
 //    returns -1 if transfer unsuccessful, e.g. slave times out / does not acknowledge start of burst
 //    updates external variables with received/ buffered values at end of successful transfer
 //    note: only updates external variables if it appears that transfer was successful
-int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, long param1, long param2, long param3 )
+int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, signed char SidewaysThrottle, long param1, long param2, long param3 )
 {
 
   unsigned char byteFromSPI;
@@ -258,8 +264,8 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
     unsigned char  asByte [4];
   };
 
-  union byteUnion toSPIBufferByte1, toSPIBufferByte2, toSPIBufferByte3;
-  union byteUnion fromSPIBufferByte1, fromSPIBufferByte2, fromSPIBufferByte3;
+  union byteUnion toSPIBufferByte1, toSPIBufferByte2, toSPIBufferByte3, toSPIBufferByte4;
+  union byteUnion fromSPIBufferByte1, fromSPIBufferByte2, fromSPIBufferByte3, fromSPIBufferByte4;
 
   union longUnion toSPIBufferLong1, toSPIBufferLong2, toSPIBufferLong3 ;
   union longUnion fromSPIBufferLong1, fromSPIBufferLong2, fromSPIBufferLong3 ;
@@ -267,6 +273,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
   toSPIBufferByte1.asChar = command;
   toSPIBufferByte2.asSignedChar = TurnVelocity;
   toSPIBufferByte3.asSignedChar = ForwardThrottle;
+  toSPIBufferByte4.asSignedChar = SidewaysThrottle;
 
   toSPIBufferLong1.asLong = param1;
   toSPIBufferLong2.asLong = param2;
@@ -275,6 +282,8 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
   fromSPIBufferByte1.asUnsignedChar = 0;
   fromSPIBufferByte2.asUnsignedChar = 0;
   fromSPIBufferByte3.asUnsignedChar = 0;
+  fromSPIBufferByte4.asUnsignedChar = 0;
+
   fromSPIBufferLong1.asLong = 0;
   fromSPIBufferLong2.asLong = 0;
   fromSPIBufferLong3.asLong = 0;
@@ -330,22 +339,26 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
   fromSPIBufferByte3.asUnsignedChar = spiTxRx(toSPIBufferByte3.asUnsignedChar);
   usleep (50);
 
+  // send Byte4 (SidewaysThrottle) and fetch Byte4 (SidewaysThrottle) from slave
+  fromSPIBufferByte4.asUnsignedChar = spiTxRx(toSPIBufferByte4.asUnsignedChar);
+  usleep (50);
+
   int i=0; 
-  // send bytes 4 thru 7 (param1) and fetch response     
+  // send bytes 5 thru 8 (param1) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong1.asByte[i] = spiTxRx(toSPIBufferLong1.asByte[i]);
     usleep (50);
   }   
 
-  // send bytes 8 thru 11 (param2) and fetch response     
+  // send bytes 9 thru 12 (param2) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong2.asByte[i] = spiTxRx(toSPIBufferLong2.asByte[i]);
     usleep (50);
   }   
 
-  // send bytes 12 thru 15 (param3) and fetch response     
+  // send bytes 13 thru 16 (param3) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong3.asByte[i] = spiTxRx(toSPIBufferLong3.asByte[i]);
@@ -364,6 +377,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
     receivedByte1 = fromSPIBufferByte1.asUnsignedChar;
     receivedByte2 = fromSPIBufferByte2.asUnsignedChar;
     receivedByte3 = fromSPIBufferByte3.asUnsignedChar;
+    receivedByte4 = fromSPIBufferByte4.asUnsignedChar;
 
     receivedLong1 = fromSPIBufferLong1.asLong;
     receivedLong2 = fromSPIBufferLong2.asLong;

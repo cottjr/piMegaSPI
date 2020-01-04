@@ -23,9 +23,10 @@
 
 
 // placeholder variables to provide interface between the SPI service and the functions using the SPI service
-// ToDo -> eventually refactor these for more clean & abstracted interface to SPI service
+// ToDo -> eventually refactor these for more clean & abstracted interface to SPI service, e.g. consider a Throttle structure, .forward, .sideways, .turn
 // signed char TurnVelocityFromMega = 0;
 // signed char ForwardThrottleFromMega = 0;
+// signed char SidewaysThrottleFromMega = 0;
 
                    
 void setup (void)
@@ -47,12 +48,14 @@ void loop ()
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
-    Serial.println("from Pi: command, TurnVelocity, ForwardThrottle, param1, param2, param3");
+    Serial.println("from Pi: command, TurnVelocity, ForwardThrottle, SidewaysThrottle, param1, param2, param3");
     Serial.print(spiSlavePort.getCommandFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getTurnVelocityFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getForwardThrottleFromPi());
+    Serial.print(", ");
+    Serial.print(spiSlavePort.getSidewaysThrottleFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getParam1FromPi());
     Serial.print(", ");
@@ -74,8 +77,8 @@ void loop ()
   }
   else
   {
-    Serial.println("queuing for PI: p, Max burst duration, +13, 248, 399, 425");
-    if ( spiSlavePort.setDataForPi('p', spiSlavePort.getMaxBurstDuration(), +13, 248, 399, 425) == 1)
+    Serial.println("queuing for PI: p, Max burst duration, -9, +13, 248, 399, 425");
+    if ( spiSlavePort.setDataForPi('p', spiSlavePort.getMaxBurstDuration(), -9, +13, 248, 399, 425) == 1)
     {
       Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
     }
@@ -95,12 +98,14 @@ void loop ()
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
-    Serial.println("from Pi: command, TurnVelocity, ForwardThrottle, param1, param2, param3");  
+    Serial.println("from Pi: command, TurnVelocity, ForwardThrottle, SidewaysThrottle, param1, param2, param3");
     Serial.print(spiSlavePort.getCommandFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getTurnVelocityFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getForwardThrottleFromPi());
+    Serial.print(", ");
+    Serial.print(spiSlavePort.getSidewaysThrottleFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getParam1FromPi());
     Serial.print(", ");
@@ -123,8 +128,8 @@ void loop ()
   }
   else
   {
-    Serial.println("queuing for PI: q, Max burst duration, -87, 13987, 22459, spiSlavePort.getMaxDelayBetweenBursts()");
-    if (spiSlavePort.setDataForPi('q', spiSlavePort.getMaxBurstDuration(), -87, 13987, 22459, (long) spiSlavePort.getMaxDelayBetweenBursts()) == 1) //note: loss of fidelty from casting unsigned long to long...
+    Serial.println("queuing for PI: q, Max burst duration, 51, -87, 13987, 22459, spiSlavePort.getMaxDelayBetweenBursts()");
+    if (spiSlavePort.setDataForPi('q', spiSlavePort.getMaxBurstDuration(), 51, -87, 13987, 22459, (long) spiSlavePort.getMaxDelayBetweenBursts()) == 1) //note: loss of fidelty from casting unsigned long to long...
     {
       Serial.println("-> detected collision with in-progress transfer / toggled sendBuffer for next transfers...");
     }
