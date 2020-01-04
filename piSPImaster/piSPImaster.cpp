@@ -51,7 +51,7 @@ int fdSPI;              // pointer to SPI port
 
 // placeholder values for this sample / test code
 // for a real instance, these values would be bound to dependent code.
-unsigned char receivedByte1, receivedByte2, receivedByte3;
+unsigned char receivedByte1, receivedByte2, receivedByte3, receivedByte4;
 long receivedLong1, receivedLong2, receivedLong3;
 unsigned int errorCountSPIrx = 0;
 
@@ -102,7 +102,7 @@ int main (void)
   while (megaSPIportInitInProgress)
   {
     xferSuccess = 0;
-    xferSuccess = doSPItransfer('R', 0, 0, 0, 0, 0);  // send a 'reset' command to the Mega SPI Slave
+    xferSuccess = doSPItransfer('R', 0, 0, 0, 0, 0, 0);  // send a 'reset' command to the Mega SPI Slave
     if (xferSuccess == 1)
     {
       cout << "SPI Transfer successful." << endl;
@@ -303,7 +303,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
 
     // this is the first'header' byte in a burst handshake
     spiTxRx('s');     
-    usleep (50);
+    usleep (70);
 
     // this is the second 'header' byte in a burst handshake
     // send a dummy value to fetch an acknowledge byte to determine if the slave is present in a state to proceed
@@ -312,7 +312,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
     {
       ack = true;
     }
-    usleep (50);
+    usleep (70);
 
     if (wdCounter > 17)   
     {
@@ -329,40 +329,40 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThr
 
   // send Byte1 (command) and fetch Byte1 (command) from slave
   fromSPIBufferByte1.asUnsignedChar = spiTxRx(toSPIBufferByte1.asUnsignedChar);
-  usleep (50);
+  usleep (70);
 
   // send Byte2 (TurnVelocity) and fetch Byte2 (TurnVelocity) from slave
   fromSPIBufferByte2.asUnsignedChar = spiTxRx(toSPIBufferByte2.asUnsignedChar);
-  usleep (50);
+  usleep (70);
 
   // send Byte3 (ForwardThrottle) and fetch Byte3 (ForwardThrottle) from slave
   fromSPIBufferByte3.asUnsignedChar = spiTxRx(toSPIBufferByte3.asUnsignedChar);
-  usleep (50);
+  usleep (70);
 
   // send Byte4 (SidewaysThrottle) and fetch Byte4 (SidewaysThrottle) from slave
   fromSPIBufferByte4.asUnsignedChar = spiTxRx(toSPIBufferByte4.asUnsignedChar);
-  usleep (50);
+  usleep (70);
 
   int i=0; 
   // send bytes 5 thru 8 (param1) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong1.asByte[i] = spiTxRx(toSPIBufferLong1.asByte[i]);
-    usleep (50);
+    usleep (70);
   }   
 
   // send bytes 9 thru 12 (param2) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong2.asByte[i] = spiTxRx(toSPIBufferLong2.asByte[i]);
-    usleep (50);
+    usleep (70);
   }   
 
   // send bytes 13 thru 16 (param3) and fetch response     
   for (i = 0; i <= 3; i++) 
   {
     fromSPIBufferLong3.asByte[i] = spiTxRx(toSPIBufferLong3.asByte[i]);
-    usleep (50);
+    usleep (70);
   }   
 
   // this is the last 'handshaking' byte in a burst
