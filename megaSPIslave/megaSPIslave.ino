@@ -25,7 +25,7 @@
 // placeholder variables to provide interface between the SPI service and the functions using the SPI service
 // ToDo -> eventually refactor these for more clean & abstracted interface to SPI service
 // signed char TurnVelocityFromMega = 0;
-// signed char ThrottleFromMega = 0;
+// signed char ForwardThrottleFromMega = 0;
 
                    
 void setup (void)
@@ -47,12 +47,12 @@ void loop ()
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
-    Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");
+    Serial.println("from Pi: command, TurnVelocity, ForwardThrottle, param1, param2, param3");
     Serial.print(spiSlavePort.getCommandFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getTurnVelocityFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.getThrottleFromPi());
+    Serial.print(spiSlavePort.getForwardThrottleFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getParam1FromPi());
     Serial.print(", ");
@@ -95,12 +95,12 @@ void loop ()
 
   if ( spiSlavePort.getLatestDataFromPi () == 1 )
   {
-    Serial.println("from Pi: command, TurnVelocity, Throttle, param1, param2, param3");  
+    Serial.println("from Pi: command, TurnVelocity, ForwardThrottle, param1, param2, param3");  
     Serial.print(spiSlavePort.getCommandFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getTurnVelocityFromPi());
     Serial.print(", ");
-    Serial.print(spiSlavePort.getThrottleFromPi());
+    Serial.print(spiSlavePort.getForwardThrottleFromPi());
     Serial.print(", ");
     Serial.print(spiSlavePort.getParam1FromPi());
     Serial.print(", ");

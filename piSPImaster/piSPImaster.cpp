@@ -59,7 +59,7 @@ unsigned int errorCountSPIrx = 0;
 Declare Functions to allow forward references
 ***********************************************************/
 int spiTxRx(unsigned char txDat);
-int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 );
+int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, long param1, long param2, long param3 );
 
 
 // Simple demonstration / test loop
@@ -201,14 +201,14 @@ int spiTxRx(unsigned char txDat)
 // Purpose:  
 //    send commands and data from Pi master to Arduino Mega slave
 //    receive data from Arduino Mega slave
-//    MVP - initial value is simply to transfer TurnVelocity and Throttle commands between Pi master and Arduino slave
+//    MVP - initial value is simply to transfer TurnVelocity and ForwardThrottle commands between Pi master and Arduino slave
 //    Is designed to provide a simple protocol that enables transferring lots more information later, 
 //      by invoking these communication functions but without having to revist the protocol...
 // Inputs
 //    command - placeholder byte. intended to provide flexibility, and allow passing a command, 
 //        for example, requesting some specific values, or by defining how to interpret following values
 //    TurnVelocity -> intended to provide a 'turn velocity' setpoint value from the Pi master to the Arduino slave
-//    Throttle -> intended to provide a 'throttle' setpoint value from the Pi master to the Arduino slave
+//    ForwardThrottle -> intended to provide a 'ForwardThrottle' setpoint value from the Pi master to the Arduino slave
 //    param1, param2, param3 -> placeholders  for future development to allow transferring more info from the Pi master to the Arduino slave
 //    external variables intended to receive values from SPI slave
 // Algorithm
@@ -223,7 +223,7 @@ int spiTxRx(unsigned char txDat)
 //      -> intended to allow the Arduino slave to inform the Pi master of current commanded values
 //      -> e.g. for the case where robot is being manually driven around by a controller connected to Arduino,
 //      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar
-//    3rd byte / received in exchange for 'Throttle' 
+//    3rd byte / received in exchange for 'ForwardThrottle' 
 //      -> intended to allow the Arduino slave to inform the Pi master of current commanded values
 //      -> e.g. for the case where robot is being manually driven around by a controller connected to Arduino,
 //      -> and the Pi master needs to observe those manual values, e.g. as training data for DonkeyCar
@@ -238,7 +238,7 @@ int spiTxRx(unsigned char txDat)
 //    returns -1 if transfer unsuccessful, e.g. slave times out / does not acknowledge start of burst
 //    updates external variables with received/ buffered values at end of successful transfer
 //    note: only updates external variables if it appears that transfer was successful
-int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 )
+int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, long param1, long param2, long param3 )
 {
 
   unsigned char byteFromSPI;
@@ -266,7 +266,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
 
   toSPIBufferByte1.asChar = command;
   toSPIBufferByte2.asSignedChar = TurnVelocity;
-  toSPIBufferByte3.asSignedChar = Throttle;
+  toSPIBufferByte3.asSignedChar = ForwardThrottle;
 
   toSPIBufferLong1.asLong = param1;
   toSPIBufferLong2.asLong = param2;
@@ -326,7 +326,7 @@ int doSPItransfer(char command, signed char TurnVelocity, signed char Throttle, 
   fromSPIBufferByte2.asUnsignedChar = spiTxRx(toSPIBufferByte2.asUnsignedChar);
   usleep (50);
 
-  // send Byte3 (Throttle) and fetch Byte3 (Throttle) from slave
+  // send Byte3 (ForwardThrottle) and fetch Byte3 (ForwardThrottle) from slave
   fromSPIBufferByte3.asUnsignedChar = spiTxRx(toSPIBufferByte3.asUnsignedChar);
   usleep (50);
 

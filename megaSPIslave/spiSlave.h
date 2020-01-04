@@ -21,7 +21,7 @@ class spiSlave
 
     // Purpose
     //  Fill the SPI transfer buffer with payload data to be sent to the SPI master on the next SPI byte exchange
-    unsigned char setDataForPi (char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 );
+    unsigned char setDataForPi (char command, signed char TurnVelocity, signed char ForwardThrottle, long param1, long param2, long param3 );
 
     // ToDo come up with a double buffer scheme to avoid the need to test return values from getLatestDataFromPi()
     // ToDo -> also provide a cleaner return value as a structure instead of separate variables
@@ -40,7 +40,7 @@ class spiSlave
     // public methods to retrieve the latest values received from the Pi SPI master
     char getCommandFromPi();
     signed char getTurnVelocityFromPi();
-    signed char getThrottleFromPi();
+    signed char getForwardThrottleFromPi();
     long getParam1FromPi();
     long getParam2FromPi();
     long getParam3FromPi();
@@ -139,7 +139,7 @@ class spiSlave
     //  e.g. -> accept pointers in the constuctor initialize() and bind to working values in the spiSlave class
     char commandFromPi = 0;
     signed char TurnVelocityFromPi = 0;
-    signed char ThrottleFromPi = 0;
+    signed char ForwardThrottleFromPi = 0;
     long param1FromPi = 0;
     long param2FromPi = 0;
     long param3FromPi = 0;

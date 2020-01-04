@@ -67,7 +67,7 @@ void spiSlave::enable()
 //  updates the sendBuffer with values to be shared at the next transfer(s)
 //  returns 0 if values queued during without an SPI transfer in progress
 //  returns 1 if values queued during an in-progress SPI transfer
-unsigned char spiSlave::setDataForPi (char command, signed char TurnVelocity, signed char Throttle, long param1, long param2, long param3 )
+unsigned char spiSlave::setDataForPi (char command, signed char TurnVelocity, signed char ForwardThrottle, long param1, long param2, long param3 )
 {
   unsigned char nextSendBufferSelect;
 
@@ -95,7 +95,7 @@ unsigned char spiSlave::setDataForPi (char command, signed char TurnVelocity, si
   
   toSPIBufferByte1.asChar = command;
   toSPIBufferByte2.asSignedChar = TurnVelocity;
-  toSPIBufferByte3.asSignedChar = Throttle;
+  toSPIBufferByte3.asSignedChar = ForwardThrottle;
   toSPIBufferLong1.asLong = param1;
   toSPIBufferLong2.asLong = param2;
   toSPIBufferLong3.asLong = param3;
@@ -168,7 +168,7 @@ unsigned char spiSlave::getLatestDataFromPi ()
 
   commandFromPi = fromSPIBufferByte1.asChar;
   TurnVelocityFromPi = fromSPIBufferByte2.asSignedChar;
-  ThrottleFromPi = fromSPIBufferByte3.asSignedChar;
+  ForwardThrottleFromPi = fromSPIBufferByte3.asSignedChar;
   param1FromPi = fromSPIBufferLong1.asLong;
   param2FromPi = fromSPIBufferLong2.asLong;
   param3FromPi = fromSPIBufferLong3.asLong;
@@ -211,9 +211,9 @@ signed char spiSlave::getTurnVelocityFromPi()
   return TurnVelocityFromPi;
 };
 
-signed char spiSlave::getThrottleFromPi()
+signed char spiSlave::getForwardThrottleFromPi()
 {
-  return ThrottleFromPi;
+  return ForwardThrottleFromPi;
 };
 
 long spiSlave::getParam1FromPi()
