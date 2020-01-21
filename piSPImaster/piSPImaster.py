@@ -6,6 +6,12 @@ import sys
 import time
 import spidev   # https://github.com/doceme/py-spidev
 
+# import RPi.GPIO as GPIO     # https://learn.sparkfun.com/tutorials/raspberry-gpio/python-rpigpio-api
+try:
+    import RPi.GPIO as GPIO
+except RuntimeError:
+    print("Error importing RPi.GPIO!  This is probably because you need superuser privileges.  You can achieve this by using 'sudo' to run your script")
+
 # We only have SPI bus 0 available to us on the Pi
 bus = 0
 
@@ -15,11 +21,9 @@ device = 0 #1
 # Enable SPI
 spi = spidev.SpiDev()
 
-# ToDo! =>>>>>>  port this C to Python to enable the level translator
-#   wiringPiSetup();  // set up the Pi library to enable directly controlling GPIO pins
-#   pinMode(6, OUTPUT); // set GPIO.6, ie. BCM 25 ie. physical pin 22 as output
-#   digitalWrite(6, HIGH); // set GPIO.6, high, to enable outputs on the SPI level translater from Raspberry to Arduino Mega
-
+GPIO.setmode(GPIO.BOARD)    # https://sourceforge.net/p/raspberry-gpio-python/wiki/BasicUsage/                           
+GPIO.setup(22, GPIO.OUT)    # set GPIO.6, ie. BCM 25 ie. physical pin 22 as output
+GPIO.output(22, GPIO.HIGH)  # set GPIO.6, high, to enable outputs on the SPI level translater from Raspberry to Arduino Mega
 
 # Open a connection to a specific bus and device (chip select pin)
 spi.open(bus, device)
