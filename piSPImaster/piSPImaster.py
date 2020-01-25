@@ -50,11 +50,14 @@ def doSPItransfer(): # command, TurnVelocity, ForwardThrottle, SidewaysThrottle,
         # send a dummy value to fetch an acknowledge byte to determine if the slave is present in a state to proceed
         msg = [0]
         byteFromSPI = spi.xfer(msg)
-        if byteFromSPI == 'a':
+        print('byeFromSPI:',byteFromSPI[0])
+        if byteFromSPI[0] == ord('a'):
+            print ('Aha- received an "a".\n')
             ack = True
         time.sleep(0.00001)
 
         if wdCounter > 17:
+            print ('hit the 17 byte attempt, then moving on.\n')
             #   a prior partial transfer of 15 payload + 2 header bytes should've cleared by now
             #   this limits disrupting the slave to a handful of SPI interrupts during each approx 4.5 ms attempt to connect
             return 0    # // hence -> declare an error, SPI slave unresponsive and leave receivedByte1..3 and receivedLong1..3 unchanged
@@ -63,9 +66,12 @@ def doSPItransfer(): # command, TurnVelocity, ForwardThrottle, SidewaysThrottle,
 doSPItransfer()
 
 
-i = 1
+i = 0
 while True:
+    i += 1
 
+    if i == 1 or i == 2:
+        print ('and now hit the 1st or 2nd iteration of while loop after that....\n')
     msg = [ord("s")]
     # note: piSPImaster.cpp spiTxRx() => maps to this python spidev library spi.xfer()
     result = spi.xfer(msg)
