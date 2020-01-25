@@ -33,21 +33,41 @@ spi.max_speed_hz = 1000000
 spi.mode = 0
 
 print ('Raspberry Pi SPI master port initialization complete.\n')
-print ('--> EXCEPT - still need to enable GPIO.6 w/in this code, to enable the level translator.\n\n')
 
+# int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, signed char SidewaysThrottle, long param1, long param2, long param3 )
+def doSPItransfer(): # command, TurnVelocity, ForwardThrottle, SidewaysThrottle, param1, param2, param3 ):
+    print ('Now starting doSPItransfer.\n')
+    wdCounter = 0
+    ack = False
+    while not ack:
+        # exchange a first'header' byte in a burst handshake, and throw away the recieved byte
+        msg = [ord("s")]
+        # note: piSPImaster.cpp spiTxRx() => maps to this python spidev library spi.xfer()
+        byteFromSPI = spi.xfer(msg)
+        time.sleep(0.00001)
 
+        # exchange a second 'header' byte in a burst handshake
+        # send a dummy value to fetch an acknowledge byte to determine if the slave is present in a state to proceed
+        msg = [0]
+        byteFromSPI = spi.xfer(msg)
+        if byteFromSPI == 'a':
+            ack = True
+        time.sleep(0.00001)
 
+        if wdCounter > 17:
+            #   a prior partial transfer of 15 payload + 2 header bytes should've cleared by now
+            #   this limits disrupting the slave to a handful of SPI interrupts during each approx 4.5 ms attempt to connect
+            return 0    # // hence -> declare an error, SPI slave unresponsive and leave receivedByte1..3 and receivedLong1..3 unchanged
+        wdCounter += 1
 
-
-
-
-# note: piSPImaster.cpp spiTxRx() => maps to this python spidev library spi.xfer()
+doSPItransfer()
 
 
 i = 1
 while True:
 
     msg = [ord("s")]
+    # note: piSPImaster.cpp spiTxRx() => maps to this python spidev library spi.xfer()
     result = spi.xfer(msg)
 
     time.sleep(0.00001)
