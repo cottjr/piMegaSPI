@@ -34,78 +34,135 @@ spi.mode = 0
 
 print ('Raspberry Pi SPI master port initialization complete.\n')
 
+# keep track of transfer error count detected by Pi SPI Master
+errorCountSPIrx = 0
+
+# https://wiki.python.org/moin/BitManipulation
+# counts the number of bits needed to represent an integer
+def bitLen(int_type):
+    length = 0
+    while (int_type):
+        int_type >>= 1
+        length += 1
+    return(length)
+
+# Convert a signed integer to range of 0..255
+# Explicitly clamp values to range
+# ToDo -> need to verify? convert to format expected by C for signed char
+def signedBytetoUnsignedByte (int_type):
+    if int_type < -127:
+        return 0
+    else:
+        tempValue = int_type + 127
+        if tempValue > 255:
+            return 255
+        else:
+            return tempValue 
+
+print()
+print('-------------------------------')
 # int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, signed char SidewaysThrottle, long param1, long param2, long param3 )
-def doSPItransfer(): # command, TurnVelocity, ForwardThrottle, SidewaysThrottle, param1, param2, param3 ):
+def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, param1, param2, param3, errorCountSPIrx ):
     print ('Now starting doSPItransfer.\n')
+
+    payloadToSPIBuffer = bytearray(16)
+    payloadFromSPIBuffer = bytearray(16)
+
+    payloadToSPIBuffer[0] = command
+    payloadToSPIBuffer[1] = signedBytetoUnsignedByte(TurnVelocity)
+    payloadToSPIBuffer[2] = signedBytetoUnsignedByte(ForwardThrottle)
+    payloadToSPIBuffer[3] = signedBytetoUnsignedByte(SidewaysThrottle)
+
     wdCounter = 0
     ack = False
     while not ack:
         # exchange a first'header' byte in a burst handshake, and throw away the recieved byte
-        msg = [ord("s")]
         # note: piSPImaster.cpp spiTxRx() => maps to this python spidev library spi.xfer()
-        byteFromSPI = spi.xfer(msg)
-        time.sleep(0.00001)
+        spi.xfer( [ord("s")] )
+        time.sleep(0.00007)
 
         # exchange a second 'header' byte in a burst handshake
         # send a dummy value to fetch an acknowledge byte to determine if the slave is present in a state to proceed
-        msg = [0]
-        byteFromSPI = spi.xfer(msg)
-        print('byeFromSPI:',byteFromSPI[0])
-        if byteFromSPI[0] == ord('a'):
-            print ('Aha- received an "a".\n')
+        byteListFromSPI = spi.xfer( [0] )
+        # print('type of byteFromSPI ', type(byteFromSPI),'type of byteFromSPI[0] ', type(byteFromSPI[0]), 'byteFromSPI:',byteFromSPI[0], ' , in hex ', hex(byteFromSPI[0]), ' , bit length ', bitLen(byteFromSPI[0]))
+        # print(byteFromSPI[0].to_bytes(1, byteorder="little", signed=True))
+        if byteListFromSPI[0] == ord('a'):
             ack = True
-        time.sleep(0.00001)
+        time.sleep(0.00007)
 
         if wdCounter > 17:
-            print ('hit the 17 byte attempt, then moving on.\n')
+            print ('hit the 17 byte timeout, declare error.\n')
             #   a prior partial transfer of 15 payload + 2 header bytes should've cleared by now
             #   this limits disrupting the slave to a handful of SPI interrupts during each approx 4.5 ms attempt to connect
             return 0    # // hence -> declare an error, SPI slave unresponsive and leave receivedByte1..3 and receivedLong1..3 unchanged
         wdCounter += 1
 
-doSPItransfer()
+#   the remaining bytes are payload, and are numbered 0 thru 15.
+#   hence, this protocol nominally consists of 19 byte bursts, 2 header + 16 payload + 1 handshaking
+    for x in range (16):
+        payloadFromSPIBuffer[x] = spi.xfer( [payloadToSPIBuffer[x]] )[0]
+        time.sleep(0.00007)
+
+#   this is the last 'handshaking' byte in a burst
+#   it is intended for master and slave to indicate to each other that they expect this to be the final byte transferred in a burst
+#   => and give confidence (albeit not certainty) that the payload bytes transferred between 'a' and 'z' can be trusted
+    byteListFromSPI = spi.xfer( [ord("z")] )  # note - Pi master sends a lower case 'z'
+    time.sleep(0.00007)     # semi-ensure a minimum time between attempts. Simple approach for now. A better / future approach would use semaphore.
+
+    print(payloadFromSPIBuffer)
+    print(byteListFromSPI)
+    if byteListFromSPI[0] == ord('Z'):      # note - Arduino slave must send an upper case 'Z'
+        # transfer appears to be successful
+        # => hence, assign all received values to external variable dependencies
+        # avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
+        return 1    # declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
+
+    errorCountSPIrx += 1    # bump the SPI transfer error count
+    return 2    #   -> declare an error, transfer burst started as expected, but then SPI slave appears to have gotten out of sync during the burst
 
 
+
+
+
+
+# ToDo -> I think we want to make a bytearray, assign each received byte to it during the transfer, then manipulate it after the transfer is complete
+# ie. something like the following, except, the SPI transfer returns signed integers
+#  something from here https://www.delftstack.com/howto/python/how-to-convert-int-to-bytes-in-python-2-and-python-3/
+#   e.g. (-127).to_bytes(1, byteorder="little", signed=True)
+# NO WAIT -> perhaps the integer will come across as 0..255, and we don't need to do the conversion until later, when interpreting the byte!
+#  -> perhaps we need to ship known bytes from the Arduino Mega across SPI, to verify this...  Hmmm...
+print('-------------------------------')
+print('bytearray experiments')
+myByteArray = bytearray(3)
+myByteArray[0] = 254
+myByteArray[1] = 17
+myByteArray[2] = 179 
+# myByteArray[2] = -4 # -> must be in range 0..255
+print(type ((-127).to_bytes(1, byteorder="little", signed=True)) )
+print( (-127).to_bytes(1, byteorder="little", signed=True) )
+# myByteArray[2] = (-127).to_bytes(1, byteorder="little", signed=True)
+print(myByteArray)
+print()
+
+print('-------------------------------')
+a = b'0x21'
+print('a is', a, ' type ', type(a) ) #, ' left shifted 8 bits is ', a << 8 )
+print()
+
+print('-------------------------------')
 i = 0
 while True:
     i += 1
 
-    if i == 1 or i == 2:
-        print ('and now hit the 1st or 2nd iteration of while loop after that....\n')
-    msg = [ord("s")]
-    # note: piSPImaster.cpp spiTxRx() => maps to this python spidev library spi.xfer()
-    result = spi.xfer(msg)
-
-    time.sleep(0.00001)
-
-    msg = [0]
-    result = spi.xfer(msg)
-
-    time.sleep(0.00001)
-
-    msg = [ord("R")]
-    result = spi.xfer(msg)
-
-    time.sleep(0.00001)
-
-    # The third character
-    msg = [0x7d]
-    # msg.append(i)
-    result = spi.xfer(msg)
-
-    time.sleep(0.00001)
-
-    # The last character
-    msg = [0x7e]
-    # msg.append(i)
-    result = spi.xfer(msg)
-
-    time.sleep(0.00001)
+    if i == 1: # or i == 2:
+        print ('reset the mega error counters on the 1st or 2nd iteration of while loop....\n')
+        print(doSPItransfer( ord('R'), 0, 0, 0, 0, 0, 0, errorCountSPIrx))
 
 
-
+    print(doSPItransfer( 103, 34, -80, 22, 356, -94287, 5824498, errorCountSPIrx))
+    
     # Pause so we can see them
-    time.sleep(0.1)
+    time.sleep(1.9)
 
 
 
