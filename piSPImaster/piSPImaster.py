@@ -46,18 +46,21 @@ def bitLen(int_type):
         length += 1
     return(length)
 
-# Convert a signed integer to range of 0..255
-# Explicitly clamp values to range
-# ToDo -> need to verify? convert to format expected by C for signed char
-def signedBytetoUnsignedByte (int_type):
-    if int_type < -127:
-        return 0
+# Convert any signed integer to a clamped range of -128..+127 and then to a 2's complement range of 0..255
+# matches range to C signed char which ranges from -128 to +127
+# Algorithm
+#  use abstract math versus bit twiddling / ie. rely on implicit byte interpretation by receiver of range of 0..255
+#  ie. as Signed integer        -128    -1      0   1   127
+#  ie. as 2's comp Signed Char  +128    255     0   1   127
+def signedIntegerToCSignedChar (int_type):
+    if int_type <= -128:
+        return 128
+    elif int_type < 0:
+        return (256 + int_type)
+    elif int_type < 127:
+        return int_type
     else:
-        tempValue = int_type + 127
-        if tempValue > 255:
-            return 255
-        else:
-            return tempValue 
+        return 127 
 
 print()
 print('-------------------------------')
@@ -69,9 +72,9 @@ def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, par
     payloadFromSPIBuffer = bytearray(16)
 
     payloadToSPIBuffer[0] = command
-    payloadToSPIBuffer[1] = signedBytetoUnsignedByte(TurnVelocity)
-    payloadToSPIBuffer[2] = signedBytetoUnsignedByte(ForwardThrottle)
-    payloadToSPIBuffer[3] = signedBytetoUnsignedByte(SidewaysThrottle)
+    payloadToSPIBuffer[1] = signedIntegerToCSignedChar(TurnVelocity)
+    payloadToSPIBuffer[2] = signedIntegerToCSignedChar(ForwardThrottle)
+    payloadToSPIBuffer[3] = signedIntegerToCSignedChar(SidewaysThrottle)
 
     wdCounter = 0
     ack = False
@@ -131,23 +134,23 @@ def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, par
 #   e.g. (-127).to_bytes(1, byteorder="little", signed=True)
 # NO WAIT -> perhaps the integer will come across as 0..255, and we don't need to do the conversion until later, when interpreting the byte!
 #  -> perhaps we need to ship known bytes from the Arduino Mega across SPI, to verify this...  Hmmm...
-print('-------------------------------')
-print('bytearray experiments')
-myByteArray = bytearray(3)
-myByteArray[0] = 254
-myByteArray[1] = 17
-myByteArray[2] = 179 
-# myByteArray[2] = -4 # -> must be in range 0..255
-print(type ((-127).to_bytes(1, byteorder="little", signed=True)) )
-print( (-127).to_bytes(1, byteorder="little", signed=True) )
-# myByteArray[2] = (-127).to_bytes(1, byteorder="little", signed=True)
-print(myByteArray)
-print()
+# print('-------------------------------')
+# print('bytearray experiments')
+# myByteArray = bytearray(3)
+# myByteArray[0] = 254
+# myByteArray[1] = 17
+# myByteArray[2] = 179 
+# # myByteArray[2] = -4 # -> must be in range 0..255
+# print(type ((-127).to_bytes(1, byteorder="little", signed=True)) )
+# print( (-127).to_bytes(1, byteorder="little", signed=True) )
+# # myByteArray[2] = (-127).to_bytes(1, byteorder="little", signed=True)
+# print(myByteArray)
+# print()
 
-print('-------------------------------')
-a = b'0x21'
-print('a is', a, ' type ', type(a) ) #, ' left shifted 8 bits is ', a << 8 )
-print()
+# print('-------------------------------')
+# a = b'0x21'
+# print('a is', a, ' type ', type(a) ) #, ' left shifted 8 bits is ', a << 8 )
+# print()
 
 print('-------------------------------')
 i = 0
@@ -158,8 +161,7 @@ while True:
         print ('reset the mega error counters on the 1st or 2nd iteration of while loop....\n')
         print(doSPItransfer( ord('R'), 0, 0, 0, 0, 0, 0, errorCountSPIrx))
 
-
-    print(doSPItransfer( 103, 34, -80, 22, 356, -94287, 5824498, errorCountSPIrx))
+    print(doSPItransfer( 103, -125, -1, 37, 356, -94287, 5824498, errorCountSPIrx))
     
     # Pause so we can see them
     time.sleep(1.9)
