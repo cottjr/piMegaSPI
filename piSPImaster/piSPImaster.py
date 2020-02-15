@@ -66,7 +66,7 @@ print()
 print('-------------------------------')
 # int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, signed char SidewaysThrottle, long param1, long param2, long param3 )
 def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, param1, param2, param3, errorCountSPIrx ):
-    print ('Now starting doSPItransfer.\n')
+    print ('\nNow starting doSPItransfer.')
 
     payloadToSPIBuffer = bytearray(16)
     payloadFromSPIBuffer = bytearray(16)
@@ -112,14 +112,15 @@ def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, par
     byteListFromSPI = spi.xfer( [ord("z")] )  # note - Pi master sends a lower case 'z'
     time.sleep(0.00007)     # semi-ensure a minimum time between attempts. Simple approach for now. A better / future approach would use semaphore.
 
-    print(payloadFromSPIBuffer)
-    print(byteListFromSPI)
     if byteListFromSPI[0] == ord('Z'):      # note - Arduino slave must send an upper case 'Z'
         # transfer appears to be successful
         # => hence, assign all received values to external variable dependencies
         # avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
+        print('payloadFromSPIBuffer: ', payloadFromSPIBuffer)
+        print('byteListFromSPI: ', byteListFromSPI)
         return 1    # declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
 
+    print('-- transfer fail. Initial handshake succeeded, but final acknowledgment failed.')
     errorCountSPIrx += 1    # bump the SPI transfer error count
     return 2    #   -> declare an error, transfer burst started as expected, but then SPI slave appears to have gotten out of sync during the burst
 
@@ -159,9 +160,9 @@ while True:
 
     if i == 1: # or i == 2:
         print ('reset the mega error counters on the 1st or 2nd iteration of while loop....\n')
-        print(doSPItransfer( ord('R'), 0, 0, 0, 0, 0, 0, errorCountSPIrx))
+        print('SPI exchange result: ', doSPItransfer( ord('R'), 0, 0, 0, 0, 0, 0, errorCountSPIrx))
 
-    print(doSPItransfer( 103, -125, -1, 37, 356, -94287, 5824498, errorCountSPIrx))
+    print('SPI exchange result: ', doSPItransfer( 103, -125, -1, 37, 356, -94287, 5824498, errorCountSPIrx))
     
     # Pause so we can see them
     time.sleep(1.9)
