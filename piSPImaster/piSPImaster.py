@@ -46,12 +46,21 @@ def bitLen(int_type):
         length += 1
     return(length)
 
-# Convert any signed integer to a clamped range of -128..+127 and then to a 2's complement range of 0..255
+
+# --------------------ToDo----Refactor Next Few Functions----------------------------------------------------------------------
+# Need to refactor the next 3 fuctions
+# Consider the struct module apparently available and advancing since early versions of Python
+#  https://docs.python.org/3/library/struct.html
+#  https://tutorialspoint.dev/language/python/struct-module-python 
+#  https://pymotw.com/2/struct/
+
+# Convert any Python signed integer to a clamped range of -128..+127 and then to a 2's complement range of 0..255
 # matches range to C signed char which ranges from -128 to +127
 # Algorithm
-#  use abstract math versus bit twiddling / ie. rely on implicit byte interpretation by receiver of range of 0..255
+#  use abstract math versus bit twiddling / ie. rely on implicit byte interpretation by SPI receiver of range of 0..255
 #  ie. as Signed integer        -128    -1      0   1   127
 #  ie. as 2's comp Signed Char  +128    255     0   1   127
+# clamp value to allowed range in case of function misuse
 def signedIntegerToCSignedChar (int_type):
     if int_type <= -128:
         return 128
@@ -61,6 +70,36 @@ def signedIntegerToCSignedChar (int_type):
         return int_type
     else:
         return 127 
+
+# Convert any Python integer representing a C signed char (range of 0..255 representing a 2's complement number) to a Python signed integer in range of -128..+127
+# Algorithm
+#  use abstract math versus bit twiddling / ie. rely on implicit byte interpretation by SPI transmitter of range of 0..255
+#  ie. as Signed integer        -128    -1      0   1   127
+#  ie. as 2's comp Signed Char  +128    255     0   1   127
+# clamp value to zero in case of function misuse
+def CSignedCharToSignedInteger (int_type):
+    if (int_type < 0) or (int_type > 255):
+        return 0
+    elif int_type <= 127:
+        return int_type
+    else:
+        return (int_type - 256)
+
+# Convert any Python integer representing a 4 byte C Long (range of 0 .. +4,294,967,295 representing a 2's complement number) to a Python signed integer in range of -2,147,483,648 .. +2,147,483,647
+# Algorithm
+#  use abstract math versus bit twiddling / ie. rely on implicit byte interpretation by SPI transmitter of range of 0..255
+# ie. as signed integer     -2,147,483,648  -1              0   1   2,147,483,647
+# ie. as 2's comp Long      +2,147,483,648  +4,294,967,295  0   1   2,147,483,647
+# clamp value to zero in case of function misuse
+def CLongToSignedInteger (long_type):
+    if (int_type < 0) or (int_type > 4294967295):
+        return 0
+    if long_type <= 2147483647:
+        return long_type
+    else:
+        return (long_type - 4294967296)
+
+# --------------------ToDo----Refactor Previous Few Functions----------------------------------------------------------------------
 
 print()
 print('-------------------------------')
@@ -75,6 +114,7 @@ def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, par
     payloadToSPIBuffer[1] = signedIntegerToCSignedChar(TurnVelocity)
     payloadToSPIBuffer[2] = signedIntegerToCSignedChar(ForwardThrottle)
     payloadToSPIBuffer[3] = signedIntegerToCSignedChar(SidewaysThrottle)
+    # ToDo- refactor/complete CLongToSignedInteger() exercise to extract general data passed in param1, param2 and param3
 
     wdCounter = 0
     ack = False
@@ -94,9 +134,11 @@ def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, par
         time.sleep(0.00007)
 
         if wdCounter > 17:
-            print ('hit the 17 byte timeout, declare error.\n')
+            print ('-- transfer fail. Hit the 17 byte timeout. No initial handshake acknowledgement.')
             #   a prior partial transfer of 15 payload + 2 header bytes should've cleared by now
             #   this limits disrupting the slave to a handful of SPI interrupts during each approx 4.5 ms attempt to connect
+            errorCountSPIrx += 1    # bump the SPI transfer error count
+            print('-- SPI transfer error count: ', errorCountSPIrx)                   
             return 0    # // hence -> declare an error, SPI slave unresponsive and leave receivedByte1..3 and receivedLong1..3 unchanged
         wdCounter += 1
 
@@ -116,12 +158,19 @@ def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, par
         # transfer appears to be successful
         # => hence, assign all received values to external variable dependencies
         # avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
+        print('byteListFromSPI (final acknowledge): ', byteListFromSPI, chr(byteListFromSPI[0]))
         print('payloadFromSPIBuffer: ', payloadFromSPIBuffer)
-        print('byteListFromSPI: ', byteListFromSPI)
+        print('command: ', payloadFromSPIBuffer[0], chr(payloadFromSPIBuffer[0]))
+        print('TurnVelocity: ', CSignedCharToSignedInteger(payloadFromSPIBuffer[1]))
+        print('ForwardThrottle: ', CSignedCharToSignedInteger(payloadFromSPIBuffer[2]))
+        print('SidewaysThrottle: ', CSignedCharToSignedInteger(payloadFromSPIBuffer[3]))  
+        # ToDo- print remaining payload values
+        print('SPI transfer error count: ', errorCountSPIrx)              
         return 1    # declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
 
-    print('-- transfer fail. Initial handshake succeeded, but final acknowledgment failed.')
     errorCountSPIrx += 1    # bump the SPI transfer error count
+    print('-- transfer fail. Initial handshake succeeded, but final acknowledgment failed.')
+    print('-- SPI transfer error count: ', errorCountSPIrx)             
     return 2    #   -> declare an error, transfer burst started as expected, but then SPI slave appears to have gotten out of sync during the burst
 
 
@@ -165,7 +214,7 @@ while True:
     print('SPI exchange result: ', doSPItransfer( 103, -125, -1, 37, 356, -94287, 5824498, errorCountSPIrx))
     
     # Pause so we can see them
-    time.sleep(1.9)
+    time.sleep(.9)
 
 
 
