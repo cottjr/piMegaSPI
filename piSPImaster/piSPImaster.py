@@ -101,19 +101,27 @@ def CLongToSignedInteger (long_type):
 
 # --------------------ToDo----Refactor Previous Few Functions----------------------------------------------------------------------
 
+# cheesy quick-n-dirty, use a global to store loopback values between iterations
+# Note: this means that operator command values received from the SPI slave are not fed back to the SPI slave until the next transfer cycle
+#   hence this can add considerable lag to control loops, e.g. if response to operator commands has to wait for a round trip from slave -> master -> slave
+#   this effect is considerable when the SPI iteration cycle is set to 0.9 sec, or even 0.1 sec
+#   In fact, even 0.05 sec gives unacceptable lag with ClubCarDonkyBot circa (commit 062acc3) plus changes towards the next commit (ie. 1st commit in branch donkeyCarIntegration)
+payloadToSPIBuffer = bytearray(16)
+
 print()
 print('-------------------------------')
 # int doSPItransfer(char command, signed char TurnVelocity, signed char ForwardThrottle, signed char SidewaysThrottle, long param1, long param2, long param3 )
 def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, param1, param2, param3, errorCountSPIrx ):
     print ('\nNow starting doSPItransfer.')
 
-    payloadToSPIBuffer = bytearray(16)
     payloadFromSPIBuffer = bytearray(16)
 
-    payloadToSPIBuffer[0] = command
-    payloadToSPIBuffer[1] = signedIntegerToCSignedChar(TurnVelocity)
-    payloadToSPIBuffer[2] = signedIntegerToCSignedChar(ForwardThrottle)
-    payloadToSPIBuffer[3] = signedIntegerToCSignedChar(SidewaysThrottle)
+    # For this loopBack branch, ignore parameters passed in, and store the values received from SPI slave on this iteration,
+    # to be sent back to SPI slave on next interation
+    # payloadToSPIBuffer[0] = command
+    # payloadToSPIBuffer[1] = signedIntegerToCSignedChar(TurnVelocity)
+    # payloadToSPIBuffer[2] = signedIntegerToCSignedChar(ForwardThrottle)
+    # payloadToSPIBuffer[3] = signedIntegerToCSignedChar(SidewaysThrottle)
     # ToDo- refactor/complete CLongToSignedInteger() exercise to extract general data passed in param1, param2 and param3
 
     wdCounter = 0
@@ -165,7 +173,12 @@ def doSPItransfer( command, TurnVelocity, ForwardThrottle, SidewaysThrottle, par
         print('ForwardThrottle: ', CSignedCharToSignedInteger(payloadFromSPIBuffer[2]))
         print('SidewaysThrottle: ', CSignedCharToSignedInteger(payloadFromSPIBuffer[3]))  
         # ToDo- print remaining payload values
-        print('SPI transfer error count: ', errorCountSPIrx)              
+        print('SPI transfer error count: ', errorCountSPIrx)      
+
+        # since received values assumed good, save them to loop back for the next iteration
+        for x in range (16):
+            payloadToSPIBuffer[x] = payloadFromSPIBuffer[x]
+
         return 1    # declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
 
     errorCountSPIrx += 1    # bump the SPI transfer error count
@@ -213,8 +226,8 @@ while True:
 
     print('SPI exchange result: ', doSPItransfer( 103, -125, -1, 37, 356, -94287, 5824498, errorCountSPIrx))
     
-    # Pause so we can see them
-    time.sleep(.9)
+    # Vary the SPI exchange rate by changing the delay between SPI transfer cycles
+    time.sleep(.02)
 
 
 
