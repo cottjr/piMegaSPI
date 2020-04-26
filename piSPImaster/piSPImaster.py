@@ -252,9 +252,11 @@ print('SPI exchange result: ', SPImaster.doSPItransfer(
 # Pause so we can see results
 time.sleep(.9)
 
+# For this loopBack branch, simply loop back values received from SPI slave on the prior SPI exchange iteration
 while True:
     print('SPI exchange result: ', SPImaster.doSPItransfer(
-        103, -125, -1, 37, 356, -94287, 5824498, SPImaster.errorCountSPIrx))
+        ord(SPImaster.receivedCommand), SPImaster.receivedTurnVelocity, SPImaster.receivedForwardThrottle, SPImaster.receivedSidewaysThrottle,
+        SPImaster.receivedParam1, SPImaster.receivedParam2, SPImaster.receivedParam3, SPImaster.errorCountSPIrx))
 
     # Pause so we can see results
-    time.sleep(.9)
+    time.sleep(.012)
