@@ -125,8 +125,10 @@ class piSPImaster:
 
         payloadToSPIBuffer[0] = command
         payloadToSPIBuffer[1] = self.signedIntegerToCSignedChar(TurnVelocity)
-        payloadToSPIBuffer[2] = self.signedIntegerToCSignedChar(ForwardThrottle)
-        payloadToSPIBuffer[3] = self.signedIntegerToCSignedChar(SidewaysThrottle)
+        payloadToSPIBuffer[2] = self.signedIntegerToCSignedChar(
+            ForwardThrottle)
+        payloadToSPIBuffer[3] = self.signedIntegerToCSignedChar(
+            SidewaysThrottle)
         # ToDo- refactor/complete CLongToSignedInteger() exercise to extract general data passed in param1, param2 and param3
 
         wdCounter = 0
