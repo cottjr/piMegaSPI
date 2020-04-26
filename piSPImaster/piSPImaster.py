@@ -41,10 +41,19 @@ class piSPImaster:
         self.spi.max_speed_hz = 1000000
         self.spi.mode = 0
 
-        print('Raspberry Pi SPI master port initialization complete.\n')
+        # initialize SPI master receive buffer values
+        self.receivedCommand = chr(0)
+        self.receivedTurnVelocity = 0
+        self.receivedForwardThrottle = 0
+        self.receivedSidewaysThrottle = 0
+        self.receivedParam1 = 0
+        self.receivedParam2 = 0
+        self.receivedParam3 = 0
 
         # keep track of transfer error count detected by Pi SPI Master
         self.errorCountSPIrx = 0
+
+        print('Raspberry Pi SPI master port initialization complete.\n')
 
         # https://wiki.python.org/moin/BitManipulation
         # counts the number of bits needed to represent an integer
@@ -176,20 +185,27 @@ class piSPImaster:
         if byteListFromSPI[0] == ord('Z'):
             # transfer appears to be successful
             # => hence, assign all received values to external variable dependencies
-            # avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
+
+            self.receivedCommand = chr(
+                payloadFromSPIBuffer[0])
+            self.receivedTurnVelocity = self.CSignedCharToSignedInteger(
+                payloadFromSPIBuffer[1])
+            self.receivedForwardThrottle = self.CSignedCharToSignedInteger(
+                payloadFromSPIBuffer[2])
+            self.receivedSidewaysThrottle = self.CSignedCharToSignedInteger(
+                payloadFromSPIBuffer[3])
+
+            # ToDo: avoid corruptions mixing data from different transfers - take care to ensure this copy process is not interrupted
             print('byteListFromSPI (final acknowledge): ',
                   byteListFromSPI, chr(byteListFromSPI[0]))
             print('payloadFromSPIBuffer: ', payloadFromSPIBuffer)
-            print('command: ', payloadFromSPIBuffer[0], chr(
-                payloadFromSPIBuffer[0]))
-            print('TurnVelocity: ', self.CSignedCharToSignedInteger(
-                payloadFromSPIBuffer[1]))
-            print('ForwardThrottle: ', self.CSignedCharToSignedInteger(
-                payloadFromSPIBuffer[2]))
-            print('SidewaysThrottle: ', self.CSignedCharToSignedInteger(
-                payloadFromSPIBuffer[3]))
+            print('command: ', payloadFromSPIBuffer[0], self.receivedCommand)
+            print('TurnVelocity: ', self.receivedTurnVelocity)
+            print('ForwardThrottle: ', self.receivedForwardThrottle)
+            print('SidewaysThrottle: ', self.receivedSidewaysThrottle)
             # ToDo- print remaining payload values
             print('SPI transfer error count: ', self.errorCountSPIrx)
+
             # declare successful transfer, as best as we can measure that without some clever payload checksum or hash...
             return 1
 
