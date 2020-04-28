@@ -240,23 +240,19 @@ class piSPImaster:
 
 # Reference Code Snippit -> provides a simple demo/verification
 
-SPImaster = piSPImaster()
+class SPIloopbackTest:
+    def __init__(self):
+        self.SPImaster = piSPImaster()
+        print(
+            'reset the mega error counters before entering the while loop....\n')
+        print('SPI exchange result: ', self.SPImaster.doSPItransfer(
+            ord('R'), 0, 0, 0, 0, 0, 0, self.SPImaster.errorCountSPIrx))
+        # Pause so we can see results
+        time.sleep(.9)
+        print('------Completed SPImaster init-------------------')
 
-print('-------------------------------')
-
-print(
-    'reset the mega error counters before entering the while loop....\n')
-print('SPI exchange result: ', SPImaster.doSPItransfer(
-    ord('R'), 0, 0, 0, 0, 0, 0, SPImaster.errorCountSPIrx))
-
-# Pause so we can see results
-time.sleep(.9)
-
-# For this loopBack branch, simply loop back values received from SPI slave on the prior SPI exchange iteration
-while True:
-    print('SPI exchange result: ', SPImaster.doSPItransfer(
-        ord(SPImaster.receivedCommand), SPImaster.receivedTurnVelocity, SPImaster.receivedForwardThrottle, SPImaster.receivedSidewaysThrottle,
-        SPImaster.receivedParam1, SPImaster.receivedParam2, SPImaster.receivedParam3, SPImaster.errorCountSPIrx))
-
-    # Pause so we can see results
-    time.sleep(.012)
+    # For this loopBack class, simply loop back values received from SPI slave on the prior SPI exchange iteration
+    def run(self):
+        print('SPI exchange result: ', self.SPImaster.doSPItransfer(
+            ord(self.SPImaster.receivedCommand), self.SPImaster.receivedTurnVelocity, self.SPImaster.receivedForwardThrottle, self.SPImaster.receivedSidewaysThrottle,
+            self.SPImaster.receivedParam1, self.SPImaster.receivedParam2, self.SPImaster.receivedParam3, self.SPImaster.errorCountSPIrx))

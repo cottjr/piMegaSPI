@@ -1,2 +1,4 @@
 piSPImaster/piSPImaster
 .vscode
+
+*.pyc
